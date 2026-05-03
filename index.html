@@ -451,9 +451,6 @@ function App() {
     } catch (e) { console.error(e); }
   };
 
-  // ⚠ useMemo must be called before any conditional return (React Hooks rules)
-  const streaks = useMemo(() => data ? calculateStreaks(data.days) : { activity: 0, exercise: 0, journal: 0, longest: 0 }, [data]);
-
   if (!data) return (<div style={{minHeight:'100vh', background:C.bg, color:C.inkDim, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontFamily:'monospace', letterSpacing:'0.1em'}}>loading...</div>);
 
   const today = todayStr();
@@ -473,6 +470,7 @@ function App() {
 
   const todayDay = ['일','월','화','수','목','금','토'][new Date(today).getDay()];
   const isSunday = new Date(today).getDay() === 0;
+  const streaks = calculateStreaks(data.days);
 
   const TABS = [
     { id: 'today', label: 'Today', icon: 'home' },
@@ -685,13 +683,10 @@ function MonthlyHeatmap({ days, axes }) {
   const [offset, setOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState(null);
 
-  const target = useMemo(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() + offset);
-    d.setDate(1);
-    d.setHours(0,0,0,0);
-    return d;
-  }, [offset]);
+  const d0 = new Date();
+  d0.setMonth(d0.getMonth() + offset);
+  d0.setDate(1); d0.setHours(0,0,0,0);
+  const target = d0;
 
   const year = target.getFullYear();
   const month = target.getMonth();
@@ -1051,12 +1046,13 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
 }
 
 function AnalysisTab({ data, range, setRange, saveData, streaks }) {
-  const stats = useMemo(() => computeStats(data.days, range), [data.days, range]);
-  const philosophy = useMemo(() => analyzePhilosophically(stats), [stats]);
-  const insights = useMemo(() => generateInsights(stats), [stats]);
-  const suggestions = useMemo(() => generateGrowthSuggestions(stats), [stats]);
   const [openPhil, setOpenPhil] = useState(null);
   const [openCodex, setOpenCodex] = useState(null);
+
+  const stats = computeStats(data.days, range);
+  const philosophy = analyzePhilosophically(stats);
+  const insights = generateInsights(stats);
+  const suggestions = generateGrowthSuggestions(stats);
 
   return (
     <div>

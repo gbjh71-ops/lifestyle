@@ -1,1 +1,1436 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d0f17">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tracker">
+<title>Lifestyle Tracker v8</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%239bb38a'/></svg>">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: #0d0f17;
+    color: #ecead8;
+    font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+  body { min-height: 100vh; min-height: 100dvh; }
+  button { font-family: inherit; }
+  input, textarea, select { font-family: inherit; }
+  textarea { resize: vertical; }
+  #root { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; display: flex; align-items: flex-end; animation: fadeIn 0.2s; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { transform: translateY(20px); } to { transform: translateY(0); } }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .modal-body { width: 100%; max-width: 520px; margin: 0 auto; background: #141826; border-top: 2px solid #9bb38a; max-height: 90vh; overflow-y: auto; animation: slideUp 0.25s; }
+  @media (min-width: 600px) {
+    .modal-bg { align-items: center; padding: 20px; }
+    .modal-body { max-height: 85vh; border-radius: 4px; border: 1px solid #2a2c3e; border-top: 2px solid #9bb38a; }
+  }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #0d0f17; }
+  ::-webkit-scrollbar-thumb { background: #2a2c3e; }
+
+  .heatmap-cell { transition: transform 0.1s; cursor: pointer; }
+  .heatmap-cell:hover { transform: scale(1.15); z-index: 2; }
+  .pulse { animation: pulse 2s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo } = React;
+
+const STORAGE_KEY = 'lifestyle-tracker-v8';
+const STORAGE_KEY_LEGACY_V7 = 'lifestyle-tracker-v7';
+const STORAGE_KEY_LEGACY_V6 = 'lifestyle-tracker-v6';
+
+const C = {
+  bg: '#0d0f17', bg2: '#141826', bg3: '#1c2132',
+  ink: '#ecead8', inkDim: '#8c8d83', line: '#2a2c3e',
+  sage: '#9bb38a', gold: '#d4a44c', teal: '#4a8b8b',
+  rust: '#c75640', plum: '#8b5a8c', slate: '#5e6779'
+};
+
+const Ic = ({ d, size = 14, color = 'currentColor', strokeWidth = 2 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    {typeof d === 'string' ? <path d={d} /> : d}
+  </svg>
+);
+
+const i = {
+  check: 'M20 6 9 17l-5-5',
+  plus: <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+  minus: <line x1="5" y1="12" x2="19" y2="12"/>,
+  x: <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+  moon: 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z',
+  coffee: <><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></>,
+  sparkles: 'M12 3v18M3 12h18M5.6 5.6l12.8 12.8M5.6 18.4l12.8-12.8',
+  book: <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>,
+  wrench: 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
+  file: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></>,
+  dumbbell: <><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/></>,
+  footprints: <><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"/></>,
+  more: <><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></>,
+  rotate: <><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></>,
+  alert: 'M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z',
+  settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
+  edit: <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
+  trash: <><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></>,
+  download: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
+  upload: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></>,
+  brain: 'M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2zM14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2z',
+  chevronRight: 'm9 18 6-6-6-6',
+  chevronLeft: 'm15 18-6-6 6-6',
+  pen: 'M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z',
+  bar: <><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></>,
+  home: <><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
+  flame: 'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z',
+  calendar: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>,
+  crown: 'M2 19h20l-2-12-5 4-5-7-5 7-5-4-2 12z',
+  scale: <><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></>,
+  target: <><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></>,
+};
+
+const PT_CONFIG = { initialDone: 17, total: 30, startDate: '2026-05-04', estimatedEnd: '2026-06-17' };
+
+const DEFAULT_AXES = [
+  { id: 'axis1', label: 'Axis I', sub: '지경학+사회과학', color: C.rust, icon: 'sparkles' },
+  { id: 'axis2', label: 'Axis II', sub: '에너지경제학', color: C.gold, icon: 'book' },
+  { id: 'tool', label: 'Tool', sub: 'Claude Skill', color: C.teal, icon: 'wrench' },
+  { id: 'book', label: 'Book', sub: '자유 독서', color: C.plum, icon: 'file' },
+];
+
+const EXERCISE_TYPES = [
+  { id: 'pt', label: 'PT', icon: 'dumbbell', color: C.gold },
+  { id: 'run', label: '러닝', icon: 'footprints', color: C.teal },
+  { id: 'other', label: '기타', icon: 'more', color: C.sage },
+];
+
+const MOODS = [
+  { v: 1, label: '힘듦', color: C.rust, emoji: '😔' },
+  { v: 2, label: '저조', color: C.plum, emoji: '😐' },
+  { v: 3, label: '보통', color: C.slate, emoji: '🙂' },
+  { v: 4, label: '좋음', color: C.teal, emoji: '😊' },
+  { v: 5, label: '최고', color: C.sage, emoji: '😄' },
+];
+
+const ICON_OPTIONS = ['sparkles','book','wrench','file','dumbbell','footprints','coffee','brain','pen','bar','home'];
+const COLOR_OPTIONS = [C.rust, C.gold, C.teal, C.sage, C.plum, C.slate];
+
+// ===== Leader's Codex - 3 guidance cards =====
+const CODEX = [
+  {
+    id: 'sovereign',
+    title: '지배자의 루틴',
+    subtitle: '수동적 능동성을 경계하라',
+    icon: 'crown',
+    color: C.gold,
+    intro: '남들이 시키는 일을 열심히 하는 것은 \'수동적 능동성\'일 뿐. 당신의 루틴은 스스로 설계한 것이어야 한다.',
+    motto: '"일반적인 잣대는 일반인에게나 적용하라. 나는 나만의 궤도를 달리는 1%다."',
+    practices: [
+      '퇴근 후의 시간은 \'휴식\'이 아니라 \'제2의 출근\'이다. 에너지를 분산시키지 말고 목표에 집중 투하하라.',
+      '주변의 나태함에 전염되지 마라. 사자는 들개와 섞이지 않으며, 오직 자신의 사냥감(목표)만 응시한다.',
+      '"왜?"라는 질문을 멈추지 마라. 시스템에 길들여지는 순간, 개척자의 생명은 끝난다.',
+    ]
+  },
+  {
+    id: 'restraint',
+    title: '절제의 미학',
+    subtitle: '성취 끝에 오는 고귀한 낭만',
+    icon: 'scale',
+    color: C.plum,
+    intro: '단순한 참음이 아니라, 더 큰 가치를 위해 오늘의 에너지를 아끼고 벼리는 과정이다.',
+    motto: '"감성은 구걸하는 것이 아니라, 압도적인 성취 끝에 절로 배어 나오는 품격이다."',
+    practices: [
+      '노래 가사를 곱씹듯, 오늘 내가 짠 코드 한 줄과 분석한 데이터 한 줄의 의미를 명확히 하라.',
+      '불필요한 관계와 소음에 에너지를 낭비하지 마라. 그 에너지는 오직 \'진짜 환상\'을 만드는 데 써야 한다.',
+      '오늘의 절제는 미래의 나에게 주는 가장 고귀한 선물이다.',
+    ]
+  },
+  {
+    id: 'leader',
+    title: '리더의 실행',
+    subtitle: '결과로 증명하는 압도적 실력',
+    icon: 'target',
+    color: C.rust,
+    intro: '부족함을 인정하는 것은 겸손이 아니라, 더 강력해지기 위한 전략적 판단이다.',
+    motto: '"나무조차 바위를 뚫고 뿌리를 내린다. 환경을 탓하는 것은 리더의 언어가 아니다."',
+    practices: [
+      '데이터와 실력으로 말하라. 리더의 권위는 입이 아니라 결과에서 나온다.',
+      '일 년 반의 장기 플랜은 하루하루의 정밀한 실행이 모여 완성된다. 오차 범위를 허용하지 마라.',
+      '누군가에게 \'아름다운 이정표\'가 될 수 있도록, 오늘 당신의 뒷모습에 책임을 다하라.',
+    ]
+  },
+];
+
+// ===== Daily Self-Questions =====
+const SELF_QUESTIONS = [
+  { id: 'q_agency', dim: '주체성', q: '오늘 나는 남이 정해준 길을 갔는가, 내가 만든 길을 확장했는가?', color: C.gold },
+  { id: 'q_density', dim: '밀도', q: '오늘 나의 루틴은 1%의 리더다운 밀도였는가, 아니면 적당한 타협이었는가?', color: C.plum },
+  { id: 'q_value', dim: '가치', q: '오늘 나의 노력이 훗날 내가 꿈꾸는 \'진짜 환상\'의 벽돌 한 장이 되었는가?', color: C.rust },
+];
+
+const initialData = () => ({
+  startDate: '2026-05-04',
+  days: {},
+  axes: DEFAULT_AXES,
+  books: [
+    { id: 'leonard', title: 'The Age of Unpeace', author: 'Mark Leonard', axis: 'I', progress: 0, total: 250 },
+    { id: 'iea', title: 'IEA WEO Exec Summary', author: 'IEA', axis: 'II', progress: 0, total: 30 }
+  ],
+  guideTasks: [
+    { id: 'w1-mon', week: 1, label: '월 5/4 — Age of Unpeace 첫 30분 + PT 18회째' },
+    { id: 'w1-tue', week: 1, label: '화 5/5 — IEA WEO 10페이지' },
+    { id: 'w1-sun', week: 1, label: '일 5/10 — 카페 1시간 + 회고 5줄' },
+    { id: 'w2-mon', week: 2, label: '월 5/11 — Axis I 30분 + PT' },
+    { id: 'w2-tue', week: 2, label: '화 5/12 — Axis II 30분' },
+    { id: 'w2-wed', week: 2, label: '수 5/13 — 첫 Skill 1쪽 + PT' },
+    { id: 'w2-sun', week: 2, label: '일 5/17 — 카페 2시간 + 러닝' },
+    { id: 'w3-mon', week: 3, label: '월 5/18 — Axis I 30분 + PT' },
+    { id: 'w3-tue', week: 3, label: '화 5/19 — Axis II 30분' },
+    { id: 'w3-wed', week: 3, label: '수 5/20 — Skill 실제 사용 + PT' },
+    { id: 'w3-sun', week: 3, label: '일 5/24 — 카페 1시간 (가볍게 마무리)' },
+  ],
+  guideTasksDone: {},
+  weeklyReviews: {}
+});
+
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+const dDay = (target) => {
+  const t = new Date(); t.setHours(0,0,0,0);
+  const tg = new Date(target); tg.setHours(0,0,0,0);
+  return Math.ceil((tg - t) / 86400000);
+};
+const fmt = (s) => {
+  const d = new Date(s);
+  const day = ['일','월','화','수','목','금','토'][d.getDay()];
+  return `${d.getMonth()+1}/${d.getDate()}(${day})`;
+};
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+const getWeekKey = (dateStr) => {
+  const d = dateStr ? new Date(dateStr) : new Date();
+  d.setHours(0,0,0,0);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(d.setDate(diff));
+  return `${monday.getFullYear()}-W${String(getWeekNum(monday)).padStart(2,'0')}`;
+};
+const getWeekNum = (d) => {
+  const target = new Date(d.valueOf());
+  const dayNum = (d.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNum + 3);
+  const firstThursday = target.valueOf();
+  target.setMonth(0, 1);
+  if (target.getDay() !== 4) {
+    target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+  }
+  return 1 + Math.ceil((firstThursday - target) / 604800000);
+};
+
+function calculateStreaks(days) {
+  const sorted = Object.keys(days).sort();
+  if (sorted.length === 0) return { activity: 0, exercise: 0, journal: 0, longest: 0 };
+  const today = todayStr();
+
+  const checkDay = (date, type) => {
+    const d = days[date];
+    if (!d) return false;
+    if (type === 'activity') return d.axes && d.axes.length > 0;
+    if (type === 'exercise') return !!d.exerciseType;
+    if (type === 'journal') return (d.note && d.note.trim()) || (d.journal && d.journal.trim());
+    return false;
+  };
+
+  const computeStreak = (type) => {
+    let streak = 0;
+    let checkDate = new Date();
+    const todayFilled = checkDay(today, type);
+    if (!todayFilled) checkDate.setDate(checkDate.getDate() - 1);
+    while (true) {
+      const ds = `${checkDate.getFullYear()}-${String(checkDate.getMonth()+1).padStart(2,'0')}-${String(checkDate.getDate()).padStart(2,'0')}`;
+      if (checkDay(ds, type)) {
+        streak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else break;
+    }
+    return streak;
+  };
+
+  let longest = 0, current = 0, prevDate = null;
+  sorted.forEach(d => {
+    if (checkDay(d, 'activity')) {
+      if (prevDate) {
+        const diff = (new Date(d) - new Date(prevDate)) / 86400000;
+        current = diff === 1 ? current + 1 : 1;
+      } else current = 1;
+      if (current > longest) longest = current;
+      prevDate = d;
+    } else { current = 0; prevDate = d; }
+  });
+
+  return { activity: computeStreak('activity'), exercise: computeStreak('exercise'), journal: computeStreak('journal'), longest };
+}
+
+const PHILOSOPHERS = [
+  { id: 'socrates', name: '소크라테스', subtitle: 'Self-Examination', color: C.gold, motto: '"검토되지 않은 삶은 살 가치가 없다"' },
+  { id: 'aristotle', name: '아리스토텔레스', subtitle: 'Eudaimonia · Habit', color: C.teal, motto: '"우리는 반복적으로 행하는 것의 결과다"' },
+  { id: 'aurelius', name: '마르쿠스 아우렐리우스', subtitle: 'Stoic Discipline', color: C.slate, motto: '"통제할 수 있는 것에 집중하라"' },
+  { id: 'frankl', name: '빅터 프랭클', subtitle: 'Logotherapy · Meaning', color: C.plum, motto: '"의미 없는 삶은 견딜 수 없는 고통이다"' },
+  { id: 'sartre', name: '장 폴 사르트르', subtitle: 'Existentialism · Choice', color: C.rust, motto: '"인간은 자유롭도록 저주받았다"' },
+];
+
+function analyzePhilosophically(stats) {
+  const { activeDays, exerciseDays, sleepAvg, axisCount, moodAvg, totalDays, journalDays } = stats;
+  const consistency = activeDays / Math.max(totalDays, 1);
+  const exerciseRate = exerciseDays / Math.max(totalDays, 1);
+  const reflectionRate = journalDays / Math.max(totalDays, 1);
+  const sleepHealth = sleepAvg >= 7.5;
+  const balanceScore = axisCount;
+
+  let socrates = reflectionRate > 0.6 ?
+    `자기 검토의 빈도가 높습니다. ${journalDays}일 동안 일기를 작성하셨어요. 이는 'γνῶθι σεαυτόν'(너 자신을 알라)을 실천하는 모습입니다. 다만 *질문*에 집중해보세요 — 답을 적기보다 좋은 질문을 적는 날이 더 깊은 통찰을 줍니다.` :
+    reflectionRate > 0.3 ?
+    `검토의 습관이 자라고 있어요. 매일 일기를 쓸 필요는 없지만, *"오늘 내가 한 선택은 정말 내가 원한 것이었나?"* 같은 질문을 일주일에 2~3번 해보면 자기 인식이 깊어집니다.` :
+    `소크라테스가 말한 *검토되지 않은 삶*에 가까운 패턴입니다. 행동은 있지만 그 행동에 대한 *질문*이 적어요. 한 줄 메모라도 좋으니 "왜 그랬을까?"를 적어보세요. 비난이 아닌 호기심으로.`;
+
+  let aristotle = consistency > 0.7 ?
+    `훌륭한 습관이 형성되고 있습니다. 아리스토텔레스는 덕(arete)이 단발성 영웅적 행동이 아니라 *반복되는 작은 행위*에서 나온다 했어요. ${Math.round(consistency*100)}%의 활동률은 그 자체로 이미 성취입니다.` :
+    consistency > 0.4 ?
+    `습관 형성의 중간 단계예요. 아리스토텔레스의 *hexis*(체득) 개념이 중요한 시기 — 의지가 아닌 *자동화*로 가는 다리. 너무 큰 목표보다 *오늘 하나*에 집중하세요.` :
+    `아직 습관이 자리잡지 않은 단계입니다. 의지력에 의존하면 지칩니다. 아리스토텔레스의 조언: *환경을 바꿔라*. 책을 책상이 아닌 침대 옆에 두기, 운동복을 미리 입기 같은 작은 트리거가 의지보다 강합니다.`;
+
+  let aurelius = (exerciseRate > 0.6 && sleepHealth) ?
+    `몸과 정신 모두 통제하고 있습니다. 아우렐리우스의 *명상록*에서 "신체는 정신의 도구"라 했죠. 운동 ${exerciseDays}일, 평균 수면 ${sleepAvg.toFixed(1)}시간 — 이는 통제 가능한 영역에 충실한 모습. 통제 *불가능한* 것에 대한 걱정도 같이 줄여보세요.` :
+    (exerciseRate > 0.3 || sleepHealth) ?
+    `통제 가능한 것과 불가능한 것의 구분이 필요한 시기예요. 운동이나 수면 중 하나는 잘 지키고 있습니다. 아우렐리우스의 핵심 — *"오늘 아침 일어나서 살아있다는 것 자체가 특권"*. 작은 일관성을 자축하세요.` :
+    `스토아 철학자가 강조한 *프로하이레시스*(선택 능력)가 약해진 상태일 수 있어요. 외부 상황이 아니라 *반응*을 통제하는 게 핵심. 오늘 아침에 한 가지 작은 의식적 선택 (예: 5분 산책)부터 회복해보세요.`;
+
+  let frankl = balanceScore > 8 ?
+    `다양한 영역에 의미를 분산시키고 있습니다. 프랭클은 *의미는 외부에서 오지 않고 자신이 부여한다*고 했어요. ${balanceScore}개의 axis 활동은 의미 있는 다층 구조. 다만 *왜* 이걸 하고 있는지를 가끔 다시 묻는 게 중요합니다.` :
+    balanceScore > 3 ?
+    `의미 부여가 진행 중인 단계입니다. 프랭클의 로고테라피 핵심: *상황이 통제 안 될 때 태도를 통제할 수 있다*. 작업 자체보다 그 작업의 *의미*를 한 줄로 적어두면 동력이 유지됩니다.` :
+    `활동량이 줄어든 시기일 수 있어요. 프랭클이 강제수용소에서 발견한 것 — *의미를 가진 사람은 어떤 상황도 견딘다*. 큰 목표가 아니라, *내일 한 가지 약속*을 정하세요. 그게 의미의 씨앗이 됩니다.`;
+
+  let sartre = (moodAvg && moodAvg < 2.5) ?
+    `사르트르의 *bad faith*(자기기만)를 경계해야 할 시기입니다. "어쩔 수 없어"라고 말하는 순간 자유를 포기하는 거예요. 지금 기분이 안 좋아도, *다음 1시간을 어떻게 쓸지*는 100% 본인 선택입니다. 그 선택이 곧 정체성.` :
+    consistency > 0.5 ?
+    `사르트르의 *engagement*(참여) 상태입니다. 본인이 선택한 가치(대학원·운동·연구)에 행동으로 답하고 있어요. 다만 사르트르의 경고 — *타인의 시선이 아닌 본인의 자유*에서 선택하고 있는지 가끔 점검하세요.` :
+    `사르트르가 말한 *자유의 무게*를 느끼는 단계일 수 있습니다. 선택지가 너무 많아 마비되는 것도 자유의 부작용. 해법은 단순 — *지금 이 순간 한 가지*만 선택하기. 완벽한 선택보다 *어떤 선택*이 자유의 실천입니다.`;
+
+  return {
+    socrates: { philosopher: PHILOSOPHERS[0], text: socrates },
+    aristotle: { philosopher: PHILOSOPHERS[1], text: aristotle },
+    aurelius: { philosopher: PHILOSOPHERS[2], text: aurelius },
+    frankl: { philosopher: PHILOSOPHERS[3], text: frankl },
+    sartre: { philosopher: PHILOSOPHERS[4], text: sartre },
+  };
+}
+
+function generateInsights(stats) {
+  const insights = [];
+  const { activeDays, exerciseDays, sleepAvg, totalDays, journalDays, axisBreakdown } = stats;
+  if (totalDays >= 3) {
+    if (activeDays / totalDays > 0.7) insights.push({ type:'strength', icon:'check', text:`높은 일관성 — ${totalDays}일 중 ${activeDays}일 활동. 이미 형성된 리듬이 자산입니다.` });
+    if (exerciseDays / totalDays > 0.6) insights.push({ type:'strength', icon:'check', text:`운동 빈도 양호 — 신체와 정신이 함께 작동하는 상태.` });
+    if (sleepAvg && sleepAvg >= 7.5) insights.push({ type:'strength', icon:'check', text:`수면 8시간 보장이 거의 지켜지고 있어요 — 가장 어려운 비협상 영역을 해내는 중.` });
+    if (sleepAvg && sleepAvg < 7) insights.push({ type:'caution', icon:'alert', text:`수면 평균 ${sleepAvg.toFixed(1)}h — 7시간 미만은 cognitive 성과 직결 손실. 다른 모든 노력이 약화됩니다.` });
+    if (exerciseDays / totalDays < 0.3 && totalDays >= 5) insights.push({ type:'caution', icon:'alert', text:`운동 빈도 낮음. PT 외에도 가벼운 산책이라도 추가해보세요.` });
+    if (axisBreakdown && Object.keys(axisBreakdown).length === 1) insights.push({ type:'suggest', icon:'sparkles', text:`한 axis에만 집중 중. 다양성이 회복력을 만듭니다 — 다음 주는 다른 axis 1개를 시도.` });
+    if (journalDays / totalDays < 0.3 && totalDays >= 7) insights.push({ type:'suggest', icon:'pen', text:`기록(메모/일기)이 적은 편. 한 줄이라도 자기 검토는 장기적으로 가장 큰 ROI.` });
+  }
+  if (insights.length === 0) insights.push({ type:'info', icon:'sparkles', text:`데이터가 더 쌓이면 깊은 인사이트가 나옵니다. 일단 1주일 채워보세요.` });
+  return insights;
+}
+
+function generateGrowthSuggestions(stats) {
+  const out = [];
+  const { exerciseDays, sleepAvg, totalDays, journalDays, axisBreakdown } = stats;
+  if (totalDays < 7) out.push({ title: '첫 주 완주', body: '아직 데이터가 적어요. 7일 채우면 첫 패턴이 보입니다. 완벽 X, 일단 자리에 앉기.', priority: 1 });
+  if (sleepAvg && sleepAvg < 7.5) out.push({ title: '수면 30분 앞당기기', body: '23:30 취침을 23:00로. 다른 어떤 변화보다 효과 큽니다. 23:00에 알람 1개 추가해보세요.', priority: 1 });
+  if (exerciseDays / Math.max(totalDays,1) < 0.4) out.push({ title: '운동 마찰 줄이기', body: '운동복 미리 꺼내두기, 운동가방 문 앞에 두기. 의지보다 환경이 강합니다.', priority: 2 });
+  if (axisBreakdown && Object.values(axisBreakdown).length < 2 && totalDays >= 7) out.push({ title: '주제 다양화', body: '한 axis만 계속하면 burnout. 다음 주 1번이라도 다른 axis 시도 — 회복력 = 다양성.', priority: 2 });
+  if (journalDays / Math.max(totalDays,1) < 0.3 && totalDays >= 5) out.push({ title: '주 2회 일기', body: '"오늘 가장 좋았던 1순간 + 가장 어려웠던 1순간" 만 적기. 5분이면 충분.', priority: 2 });
+  if (out.length === 0) out.push({ title: '현재 페이스 유지', body: '큰 변화 필요 없음. 의도적으로 동일 페이스 유지하면서 4주 후 다시 검토.', priority: 3 });
+  return out.sort((a,b) => a.priority - b.priority);
+}
+
+function computeStats(days, range) {
+  const allDates = Object.keys(days).sort();
+  let targetDates = allDates;
+  if (range === 'week') {
+    const end = new Date(); end.setHours(0,0,0,0);
+    const start = new Date(end); start.setDate(end.getDate() - 6);
+    targetDates = allDates.filter(d => new Date(d) >= start && new Date(d) <= end);
+  } else if (range === 'month') {
+    const end = new Date(); end.setHours(0,0,0,0);
+    const start = new Date(end); start.setDate(end.getDate() - 29);
+    targetDates = allDates.filter(d => new Date(d) >= start && new Date(d) <= end);
+  }
+  const totalDays = range === 'week' ? 7 : (range === 'month' ? 30 : Math.max(targetDates.length, 1));
+  const targetData = targetDates.map(d => days[d]).filter(Boolean);
+  const activeDays = targetData.filter(d => d.axes && d.axes.length > 0).length;
+  const exerciseDays = targetData.filter(d => d.exerciseType).length;
+  const journalDays = targetData.filter(d => (d.note && d.note.trim()) || (d.journal && d.journal.trim())).length;
+  const sleeps = targetData.filter(d => d.sleepHrs).map(d => d.sleepHrs);
+  const sleepAvg = sleeps.length ? sleeps.reduce((a,b) => a+b, 0) / sleeps.length : null;
+  const moods = targetData.filter(d => d.mood).map(d => d.mood);
+  const moodAvg = moods.length ? moods.reduce((a,b) => a+b, 0) / moods.length : null;
+  let axisCount = 0;
+  const axisBreakdown = {};
+  targetData.forEach(d => {
+    if (d.axes) {
+      axisCount += d.axes.length;
+      d.axes.forEach(a => { axisBreakdown[a] = (axisBreakdown[a] || 0) + 1; });
+    }
+  });
+  return { totalDays, activeDays, exerciseDays, journalDays, sleepAvg, moodAvg, axisCount, axisBreakdown };
+}
+
+function Modal({ open, onClose, title, children }) {
+  if (!open) return null;
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal-body" onClick={e => e.stopPropagation()}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 16px', borderBottom:`1px solid ${C.line}`, position:'sticky', top:0, background:C.bg2, zIndex:1}}>
+          <h3 style={{fontSize:14, fontWeight:700, color:C.ink, fontFamily:'ui-monospace, monospace', letterSpacing:'0.15em', textTransform:'uppercase'}}>{title}</h3>
+          <button onClick={onClose} style={{background:'transparent', border:'none', color:C.inkDim, cursor:'pointer', padding:6}}>
+            <Ic d={i.x} size={18} />
+          </button>
+        </div>
+        <div style={{padding:'16px'}}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [data, setData] = useState(null);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [activeTab, setActiveTab] = useState('today');
+  const [modal, setModal] = useState(null);
+  const [analysisRange, setAnalysisRange] = useState('week');
+
+  useEffect(() => {
+    try {
+      let stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) stored = localStorage.getItem(STORAGE_KEY_LEGACY_V7);
+      if (!stored) stored = localStorage.getItem(STORAGE_KEY_LEGACY_V6);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setData({ ...initialData(), ...parsed });
+      } else setData(initialData());
+    } catch { setData(initialData()); }
+  }, []);
+
+  const saveData = (newData) => {
+    setData(newData);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 1200);
+    } catch (e) { console.error(e); }
+  };
+
+  if (!data) return (<div style={{minHeight:'100vh', background:C.bg, color:C.inkDim, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontFamily:'monospace', letterSpacing:'0.1em'}}>loading...</div>);
+
+  const today = todayStr();
+  const todayData = data.days[today] || { axes: [], exerciseType: null, sleepHrs: 8, note: '', cafe: false, mood: null, journal: '', selfQ: {} };
+  const dToStart = dDay(data.startDate);
+  const ptDoneSinceStart = Object.values(data.days).filter(d => d.exerciseType === 'pt').length;
+  const ptCompleted = PT_CONFIG.initialDone + ptDoneSinceStart;
+  const ptRemaining = Math.max(0, PT_CONFIG.total - ptCompleted);
+  const ptDone = ptRemaining === 0;
+
+  const updateToday = (patch) => saveData({ ...data, days: { ...data.days, [today]: { ...todayData, ...patch } } });
+  const toggleAxis = (axisId) => {
+    const axes = todayData.axes.includes(axisId) ? todayData.axes.filter(a => a !== axisId) : [...todayData.axes, axisId];
+    updateToday({ axes });
+  };
+  const setExerciseType = (typeId) => updateToday({ exerciseType: todayData.exerciseType === typeId ? null : typeId });
+
+  const todayDay = ['일','월','화','수','목','금','토'][new Date(today).getDay()];
+  const isSunday = new Date(today).getDay() === 0;
+  const streaks = useMemo(() => calculateStreaks(data.days), [data.days]);
+
+  const TABS = [
+    { id: 'today', label: 'Today', icon: 'home' },
+    { id: 'analysis', label: 'Analysis', icon: 'brain' },
+    { id: 'manage', label: 'Manage', icon: 'settings' },
+  ];
+
+  return (
+    <div style={{minHeight:'100vh', background:C.bg, color:C.ink, paddingBottom:60}}>
+      <div style={{maxWidth: 520, margin: '0 auto', padding:'0 16px'}}>
+
+        <header style={{paddingTop:24, marginBottom:16, borderTop: `2px solid ${C.sage}`, position:'relative'}}>
+          <div style={{position:'absolute', top:-2, left:0, width:60, height:5, background: C.sage}} />
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline'}}>
+            <span style={{fontFamily:'ui-monospace, monospace', fontSize:9, color: C.sage, letterSpacing:'0.25em', textTransform:'uppercase'}}>Lifestyle · v8</span>
+            <span style={{fontFamily:'ui-monospace, monospace', fontSize:9, color: savedFlash ? C.sage : 'transparent', letterSpacing:'0.15em', transition:'color 0.3s'}}>✓ saved</span>
+          </div>
+          <h1 style={{fontSize: 30, fontStyle:'italic', fontWeight:600, lineHeight:1, marginTop:8, marginBottom:6, fontFamily:'Georgia, serif'}}>
+            {today.split('-')[1]}<span style={{color:C.sage}}>.</span>{today.split('-')[2]}
+            <span style={{fontSize:13, color:C.inkDim, marginLeft:10, fontStyle:'normal', fontFamily:'inherit', fontWeight:500}}>{todayDay}요일</span>
+          </h1>
+        </header>
+
+        <StreakBanner streaks={streaks} />
+
+        <div style={{display:'flex', borderBottom:`1px solid ${C.line}`, marginBottom:18, gap:0}}>
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+              flex:1, padding:'10px 8px',
+              background: activeTab === t.id ? 'rgba(155,179,138,0.08)' : 'transparent',
+              color: activeTab === t.id ? C.sage : C.inkDim,
+              border:'none', borderBottom: `2px solid ${activeTab === t.id ? C.sage : 'transparent'}`,
+              cursor:'pointer', fontSize:11, fontFamily:'ui-monospace, monospace',
+              letterSpacing:'0.15em', textTransform:'uppercase',
+              display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+            }}>
+              <Ic d={i[t.icon]} size={11} />{t.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'today' && (
+          <TodayTab
+            data={data} today={today} todayData={todayData} dToStart={dToStart}
+            ptCompleted={ptCompleted} ptRemaining={ptRemaining} ptDone={ptDone}
+            updateToday={updateToday} toggleAxis={toggleAxis} setExerciseType={setExerciseType}
+            saveData={saveData} setActiveTab={setActiveTab} isSunday={isSunday}
+          />
+        )}
+        {activeTab === 'analysis' && (
+          <AnalysisTab data={data} range={analysisRange} setRange={setAnalysisRange} saveData={saveData} streaks={streaks} />
+        )}
+        {activeTab === 'manage' && (
+          <ManageTab data={data} saveData={saveData} setModal={setModal} modal={modal} />
+        )}
+
+        <div style={{marginTop:28, paddingTop:14, borderTop:`1px solid ${C.line}`, textAlign:'center'}}>
+          <div style={{fontSize:8.5, color:C.inkDim, letterSpacing:'0.2em', fontFamily:'ui-monospace, monospace', textTransform:'uppercase'}}>v8 · localStorage</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StreakBanner({ streaks }) {
+  const items = [
+    { label: '활동', value: streaks.activity, icon: 'sparkles', color: C.sage },
+    { label: '운동', value: streaks.exercise, icon: 'dumbbell', color: C.teal },
+    { label: '일기', value: streaks.journal, icon: 'pen', color: C.gold },
+  ];
+  return (
+    <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:6, marginBottom:14}}>
+      {items.map(it => (
+        <div key={it.label} style={{
+          background: it.value > 0 ? `${it.color}10` : 'rgba(255,255,255,0.02)',
+          border: `1px solid ${it.value > 0 ? it.color + '60' : C.line}`,
+          padding:'10px 8px', textAlign:'center', position:'relative', overflow:'hidden',
+        }}>
+          {it.value >= 7 && <div className="pulse" style={{position:'absolute', top:0, right:0, padding:'2px 6px', background: it.color, color:C.bg, fontSize:8, fontFamily:'ui-monospace, monospace', fontWeight:700, letterSpacing:'0.1em'}}>🔥</div>}
+          <div style={{display:'flex', justifyContent:'center', alignItems:'center', gap:5, marginBottom:3}}>
+            <Ic d={i[it.icon]} size={10} color={it.value > 0 ? it.color : C.inkDim} />
+            <span style={{fontSize:9, fontFamily:'ui-monospace, monospace', color:it.value > 0 ? it.color : C.inkDim, letterSpacing:'0.15em', textTransform:'uppercase'}}>{it.label}</span>
+          </div>
+          <div style={{fontSize:18, fontWeight:700, color: it.value > 0 ? it.color : C.inkDim, fontFamily:'Georgia, serif', fontStyle:'italic', lineHeight:1}}>
+            {it.value}<span style={{fontSize:10, color:C.inkDim, fontStyle:'normal', marginLeft:2}}>일</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ===== Daily Self-Question (3 questions before journal) =====
+function DailySelfQuestion({ todayData, updateToday }) {
+  const selfQ = todayData.selfQ || {};
+
+  const setAnswer = (qid, val) => {
+    updateToday({ selfQ: { ...selfQ, [qid]: val } });
+  };
+
+  return (
+    <section style={{background:C.bg2, border:`1px solid ${C.line}`, borderTop:`2px solid ${C.gold}`, padding:'18px 16px', marginBottom:14}}>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
+        <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.gold, textTransform:'uppercase', display:'flex', alignItems:'center', gap:5}}>
+          <Ic d={i.target} size={10} />하루의 갈무리
+        </div>
+        <span style={{fontSize:10, color:C.inkDim, fontStyle:'italic', fontFamily:'Georgia, serif'}}>"연극을 마친 배우처럼"</span>
+      </div>
+
+      <p style={{fontSize:11.5, color:C.inkDim, lineHeight:1.55, marginBottom:14, fontStyle:'italic', fontFamily:'Georgia, serif'}}>
+        매일 밤, 화장을 지우듯 세 가지 질문에 답하며 하루를 마무리하세요. 답이 안 나오면 빈 칸 OK.
+      </p>
+
+      {SELF_QUESTIONS.map(sq => {
+        const ans = selfQ[sq.id] ?? null;
+        return (
+          <div key={sq.id} style={{marginBottom:14}}>
+            <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:6}}>
+              <span style={{fontSize:9, fontFamily:'ui-monospace, monospace', color:sq.color, padding:'2px 7px', border:`1px solid ${sq.color}`, letterSpacing:'0.15em', fontWeight:600}}>{sq.dim}</span>
+            </div>
+            <p style={{fontSize:12.5, color:C.ink, lineHeight:1.55, marginBottom:8, fontStyle:'italic', fontFamily:'Georgia, serif'}}>
+              {sq.q}
+            </p>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:5}}>
+              {[
+                { v: 'yes', l: '응', col: C.sage },
+                { v: 'partial', l: '반쯤', col: C.gold },
+                { v: 'no', l: '아니', col: C.rust },
+              ].map(opt => {
+                const active = ans === opt.v;
+                return (
+                  <button key={opt.v} onClick={() => setAnswer(sq.id, active ? null : opt.v)} style={{
+                    padding:'7px 6px',
+                    background: active ? `${opt.col}25` : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${active ? opt.col : C.line}`,
+                    color: active ? opt.col : C.inkDim,
+                    cursor:'pointer', fontSize:10.5,
+                    fontWeight: active ? 700 : 500,
+                  }}>{opt.l}</button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+      <div style={{padding:'10px 12px', background:'rgba(155,179,138,0.06)', borderLeft:`2px solid ${C.sage}`, fontSize:10.5, color:C.inkDim, lineHeight:1.5, marginTop:6}}>
+        <b style={{color:C.sage, fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.15em', textTransform:'uppercase'}}>회복 노트</b>
+        <p style={{marginTop:4}}>"아니"가 많은 날도 데이터예요. 자책의 도구가 아닌, 다음 하루 설계의 재료. <b style={{color:C.ink}}>지치지 않는 정교한 일상이 가장 날카로운 무기.</b></p>
+      </div>
+    </section>
+  );
+}
+
+// ===== Codex Card (Leader's Codex) =====
+function CodexCard({ entry, openId, setOpenId }) {
+  const isOpen = openId === entry.id;
+  return (
+    <div style={{background:C.bg2, border:`1px solid ${C.line}`, marginBottom:6, overflow:'hidden'}}>
+      <button onClick={() => setOpenId(isOpen ? null : entry.id)} style={{
+        width:'100%', padding:'14px 16px',
+        background:'transparent', border:'none', cursor:'pointer',
+        display:'flex', justifyContent:'space-between', alignItems:'center',
+        textAlign:'left', borderLeft:`3px solid ${entry.color}`,
+      }}>
+        <div style={{flex:1, minWidth:0, display:'flex', alignItems:'center', gap:12}}>
+          <Ic d={i[entry.icon]} size={18} color={entry.color} />
+          <div>
+            <div style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:2}}>
+              <span style={{fontSize:13.5, fontWeight:700, color:C.ink, fontFamily:'Georgia, serif', fontStyle:'italic'}}>{entry.title}</span>
+            </div>
+            <div style={{fontSize:10.5, color:entry.color, fontStyle:'italic', fontFamily:'Georgia, serif', lineHeight:1.4}}>
+              {entry.subtitle}
+            </div>
+          </div>
+        </div>
+        <Ic d={i.chevronRight} size={14} color={C.inkDim} />
+      </button>
+      {isOpen && (
+        <div style={{padding:'4px 16px 16px 16px', borderTop:`1px solid ${C.line}`}}>
+          <p style={{fontSize:12, color:C.inkDim, lineHeight:1.65, marginTop:12, marginBottom:14, fontStyle:'italic', fontFamily:'Georgia, serif'}}>
+            {entry.intro}
+          </p>
+
+          <div style={{padding:'12px 14px', background:`${entry.color}10`, borderLeft:`2px solid ${entry.color}`, marginBottom:14}}>
+            <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, color:entry.color, letterSpacing:'0.2em', marginBottom:5, textTransform:'uppercase'}}>정신 무장</div>
+            <p style={{fontSize:12.5, color:C.ink, lineHeight:1.6, fontStyle:'italic', fontFamily:'Georgia, serif'}}>{entry.motto}</p>
+          </div>
+
+          <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, color:C.inkDim, letterSpacing:'0.2em', marginBottom:8, textTransform:'uppercase'}}>실천 조언</div>
+          <ul style={{listStyle:'none', padding:0}}>
+            {entry.practices.map((p, idx) => (
+              <li key={idx} style={{
+                padding:'8px 0 8px 20px',
+                position:'relative', fontSize:12, color:C.ink, lineHeight:1.6,
+                borderBottom: idx < entry.practices.length - 1 ? `1px dashed ${C.line}` : 'none',
+              }}>
+                <span style={{position:'absolute', left:0, top:9, color:entry.color, fontFamily:'ui-monospace, monospace', fontSize:9, fontWeight:700}}>0{idx+1}</span>
+                {p}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MonthlyHeatmap({ days, axes }) {
+  const [offset, setOffset] = useState(0);
+  const [selectedDate, setSelectedDate] = useState(null);
+
+  const target = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + offset);
+    d.setDate(1);
+    d.setHours(0,0,0,0);
+    return d;
+  }, [offset]);
+
+  const year = target.getFullYear();
+  const month = target.getMonth();
+  const monthLabel = `${year}.${String(month+1).padStart(2,'0')}`;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDayOfWeek = new Date(year, month, 1).getDay();
+
+  const offset2 = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+  const cells = [];
+  for (let p = 0; p < offset2; p++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const todayKey = todayStr();
+  const getDayIntensity = (day) => {
+    if (!day) return null;
+    const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const data = days[ds];
+    if (!data) return { intensity: 0, key: ds, isToday: ds === todayKey };
+    let score = 0;
+    if (data.axes && data.axes.length > 0) score += data.axes.length;
+    if (data.exerciseType) score += 1;
+    if (data.journal && data.journal.trim()) score += 1;
+    if (data.note && data.note.trim()) score += 0.5;
+    return { intensity: Math.min(score, 5), key: ds, isToday: ds === todayKey, data };
+  };
+
+  const getColor = (intensity) => {
+    if (!intensity || intensity === 0) return C.bg3;
+    const opacity = Math.min(0.2 + (intensity / 5) * 0.7, 0.9);
+    return `rgba(155, 179, 138, ${opacity})`;
+  };
+
+  const selected = selectedDate ? days[selectedDate] : null;
+
+  return (
+    <div style={{background:C.bg2, border:`1px solid ${C.line}`, padding:16, marginBottom:14}}>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
+        <button onClick={() => setOffset(offset - 1)} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, padding:6, cursor:'pointer'}}>
+          <Ic d={i.chevronLeft} size={12} />
+        </button>
+        <div style={{fontFamily:'Georgia, serif', fontStyle:'italic', fontWeight:600, fontSize:18, color:C.ink}}>{monthLabel}</div>
+        <button onClick={() => setOffset(Math.min(0, offset + 1))} disabled={offset === 0} style={{
+          background:'transparent', border:`1px solid ${C.line}`, color:offset === 0 ? C.line : C.inkDim,
+          padding:6, cursor: offset === 0 ? 'not-allowed' : 'pointer', opacity: offset === 0 ? 0.3 : 1,
+        }}>
+          <Ic d={i.chevronRight} size={12} />
+        </button>
+      </div>
+
+      <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3, marginBottom:5}}>
+        {['월','화','수','목','금','토','일'].map((d, idx) => (
+          <div key={d} style={{textAlign:'center', fontSize:9, fontFamily:'ui-monospace, monospace', color: idx >= 5 ? C.gold : C.inkDim, letterSpacing:'0.1em', padding:'3px 0'}}>{d}</div>
+        ))}
+      </div>
+
+      <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3, marginBottom:12}}>
+        {cells.map((day, idx) => {
+          if (!day) return <div key={idx} />;
+          const info = getDayIntensity(day);
+          const color = getColor(info?.intensity);
+          const isSelected = selectedDate === info?.key;
+          return (
+            <button key={idx} className="heatmap-cell"
+              onClick={() => setSelectedDate(isSelected ? null : info.key)}
+              style={{
+                aspectRatio: '1', background: color,
+                border: `1px solid ${info?.isToday ? C.sage : (isSelected ? C.gold : C.line)}`,
+                cursor: 'pointer', position:'relative',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                padding: 0, fontSize: 10, fontFamily:'Georgia, serif',
+                color: info?.intensity > 2 ? C.bg : C.ink,
+                fontWeight: info?.isToday ? 700 : 500,
+              }}>
+              {day}
+              {info?.data?.exerciseType === 'pt' && (<div style={{position:'absolute', top:1, right:1, width:3, height:3, background:C.gold, borderRadius:'50%'}} />)}
+              {info?.data?.cafe && (<div style={{position:'absolute', bottom:1, left:1, width:3, height:3, background:C.rust, borderRadius:'50%'}} />)}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:8, fontSize:9, color:C.inkDim, fontFamily:'ui-monospace, monospace', letterSpacing:'0.05em', marginBottom:8}}>
+        <span>적음</span>
+        {[0, 1, 2, 3, 4, 5].map(v => (<div key={v} style={{width:11, height:11, background:getColor(v), border:`1px solid ${C.line}`}} />))}
+        <span>많음</span>
+      </div>
+
+      {selected && (
+        <div style={{padding:'10px 12px', background:'rgba(0,0,0,0.25)', border:`1px dashed ${C.gold}`, fontSize:11.5, color:C.ink, lineHeight:1.55}}>
+          <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, color:C.gold, letterSpacing:'0.15em', marginBottom:4, textTransform:'uppercase'}}>{fmt(selectedDate)}</div>
+          {selected.axes?.length > 0 && (
+            <div style={{display:'flex', gap:5, flexWrap:'wrap', marginBottom:4}}>
+              {selected.axes.map(aid => {
+                const ax = axes.find(a => a.id === aid);
+                if (!ax) return null;
+                return <span key={aid} style={{fontSize:9, padding:'2px 6px', border:`1px solid ${ax.color}`, color:ax.color}}>{ax.label}</span>;
+              })}
+            </div>
+          )}
+          {selected.exerciseType && <div style={{fontSize:11, color:C.teal}}>운동: {EXERCISE_TYPES.find(t => t.id === selected.exerciseType)?.label}</div>}
+          {selected.mood && <div style={{fontSize:11}}>기분: {MOODS.find(m => m.v === selected.mood)?.emoji} {MOODS.find(m => m.v === selected.mood)?.label}</div>}
+          {selected.note && <div style={{fontSize:11, color:C.inkDim, fontStyle:'italic', marginTop:4}}>"{selected.note}"</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SundayReview({ data, saveData, isSunday, forceShow }) {
+  const weekKey = getWeekKey();
+  const review = data.weeklyReviews?.[weekKey] || { best: '', hardest: '', nextWeek: '' };
+  const [open, setOpen] = useState(isSunday && (!review.best && !review.hardest && !review.nextWeek));
+
+  const update = (field, value) => {
+    saveData({ ...data, weeklyReviews: { ...data.weeklyReviews, [weekKey]: { ...review, [field]: value } } });
+  };
+
+  if (!isSunday && !forceShow && !open) return null;
+
+  return (
+    <section style={{background:C.bg2, border:`2px solid ${C.gold}`, padding:'18px 16px', marginBottom:14, position:'relative'}}>
+      <div style={{position:'absolute', top:-2, left:0, right:0, height:3, background:C.gold}} />
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, gap:10}}>
+        <div>
+          <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.gold, marginBottom:4, textTransform:'uppercase', display:'flex', alignItems:'center', gap:5}}>
+            <Ic d={i.calendar} size={10} />일요일 회고
+          </div>
+          <div style={{fontSize:14, color:C.ink, fontWeight:600, fontStyle:'italic', fontFamily:'Georgia, serif'}}>
+            {isSunday ? '카페에서 5분만' : `Week ${weekKey}`}
+          </div>
+        </div>
+        <button onClick={() => setOpen(!open)} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.gold, padding:'4px 10px', fontSize:10, fontFamily:'ui-monospace, monospace', cursor:'pointer', letterSpacing:'0.1em'}}>{open ? '접기' : '펼치기'}</button>
+      </div>
+      {open && (
+        <div>
+          <div style={{marginBottom:12}}>
+            <label style={{fontSize:9.5, fontFamily:'ui-monospace, monospace', color:C.sage, letterSpacing:'0.15em', marginBottom:4, display:'block', textTransform:'uppercase'}}>✓ 가장 좋았던 1순간</label>
+            <textarea value={review.best} onChange={e => update('best', e.target.value)} placeholder="이번 주 가장 좋았던 순간 한 가지..." rows={2}
+              style={{width:'100%', padding:'9px 11px', background:'rgba(155,179,138,0.05)', border:`1px solid ${C.line}`, color:C.ink, fontSize:12, outline:'none', boxSizing:'border-box', lineHeight:1.5}} />
+          </div>
+          <div style={{marginBottom:12}}>
+            <label style={{fontSize:9.5, fontFamily:'ui-monospace, monospace', color:C.rust, letterSpacing:'0.15em', marginBottom:4, display:'block', textTransform:'uppercase'}}>✗ 가장 어려웠던 1순간</label>
+            <textarea value={review.hardest} onChange={e => update('hardest', e.target.value)} placeholder="가장 힘들었던 순간이나 그날..." rows={2}
+              style={{width:'100%', padding:'9px 11px', background:'rgba(199,86,64,0.05)', border:`1px solid ${C.line}`, color:C.ink, fontSize:12, outline:'none', boxSizing:'border-box', lineHeight:1.5}} />
+          </div>
+          <div style={{marginBottom:8}}>
+            <label style={{fontSize:9.5, fontFamily:'ui-monospace, monospace', color:C.gold, letterSpacing:'0.15em', marginBottom:4, display:'block', textTransform:'uppercase'}}>→ 다음 주 한 가지 다르게 할 것</label>
+            <textarea value={review.nextWeek} onChange={e => update('nextWeek', e.target.value)} placeholder="딱 한 가지만. 작아도 OK." rows={2}
+              style={{width:'100%', padding:'9px 11px', background:'rgba(212,164,76,0.05)', border:`1px solid ${C.line}`, color:C.ink, fontSize:12, outline:'none', boxSizing:'border-box', lineHeight:1.5}} />
+          </div>
+          <p style={{fontSize:10.5, color:C.inkDim, lineHeight:1.5, fontStyle:'italic', fontFamily:'Georgia, serif', marginTop:8}}>"5분이면 충분합니다. 자동 저장돼요."</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PastReviews({ reviews }) {
+  const sortedKeys = Object.keys(reviews).sort().reverse();
+  if (sortedKeys.length === 0) return null;
+  return (
+    <section style={{marginBottom:14}}>
+      <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, marginBottom:8, textTransform:'uppercase'}}>지난 회고</div>
+      {sortedKeys.slice(0, 4).map(key => {
+        const r = reviews[key];
+        if (!r.best && !r.hardest && !r.nextWeek) return null;
+        return (
+          <div key={key} style={{background:C.bg2, border:`1px solid ${C.line}`, borderLeft:`3px solid ${C.gold}`, padding:'12px 14px', marginBottom:6}}>
+            <div style={{fontFamily:'ui-monospace, monospace', fontSize:9.5, color:C.gold, letterSpacing:'0.15em', marginBottom:6, textTransform:'uppercase'}}>{key}</div>
+            {r.best && <div style={{fontSize:11.5, color:C.ink, marginBottom:4, paddingLeft:14, borderLeft:`2px solid ${C.sage}40`, lineHeight:1.5}}><span style={{color:C.sage, fontFamily:'ui-monospace, monospace', fontSize:9, marginRight:6}}>✓</span>{r.best}</div>}
+            {r.hardest && <div style={{fontSize:11.5, color:C.ink, marginBottom:4, paddingLeft:14, borderLeft:`2px solid ${C.rust}40`, lineHeight:1.5}}><span style={{color:C.rust, fontFamily:'ui-monospace, monospace', fontSize:9, marginRight:6}}>✗</span>{r.hardest}</div>}
+            {r.nextWeek && <div style={{fontSize:11.5, color:C.ink, paddingLeft:14, borderLeft:`2px solid ${C.gold}40`, lineHeight:1.5}}><span style={{color:C.gold, fontFamily:'ui-monospace, monospace', fontSize:9, marginRight:6}}>→</span>{r.nextWeek}</div>}
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, ptDone, updateToday, toggleAxis, setExerciseType, saveData, setActiveTab, isSunday }) {
+  return (
+    <div>
+      <div style={{padding:'10px 12px', background:'rgba(155,179,138,0.06)', borderLeft:`2px solid ${C.sage}`, fontSize:12, color:C.inkDim, lineHeight:1.5, marginBottom:14}}>
+        {dToStart > 0 ? <span>D-{dToStart} · 5/4(월) 시작까지. <b style={{color:C.ink}}>이번주는 평소대로 OK</b></span>
+          : dToStart === 0 ? <b style={{color:C.sage}}>오늘이 시작일! 21:30 책상에 앉기.</b>
+          : <span>D+{Math.abs(dToStart)+1} · 시작 {Math.abs(dToStart)+1}일째 · Level 0</span>}
+      </div>
+
+      {isSunday && <SundayReview data={data} saveData={saveData} isSunday={isSunday} />}
+
+      <section style={{background:C.bg2, border:`1px solid ${C.line}`, padding:'18px 16px', marginBottom:14}}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
+          <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, textTransform:'uppercase'}}>Today</div>
+          <span style={{fontSize:11, color:C.ink, fontStyle:'italic', fontFamily:'Georgia, serif'}}>오늘의 기록</span>
+        </div>
+
+        <div style={{marginBottom:12}}>
+          <div style={{fontFamily:'ui-monospace, monospace', fontSize:8.5, color:C.inkDim, letterSpacing:'0.2em', marginBottom:6, textTransform:'uppercase'}}>오늘 기분</div>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:4}}>
+            {MOODS.map(m => {
+              const active = todayData.mood === m.v;
+              return (
+                <button key={m.v} onClick={() => updateToday({ mood: active ? null : m.v })} style={{
+                  background: active ? `${m.color}25` : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${active ? m.color : C.line}`,
+                  padding:'8px 4px', cursor:'pointer',
+                  display:'flex', flexDirection:'column', alignItems:'center', gap:2,
+                }}>
+                  <span style={{fontSize:18}}>{m.emoji}</span>
+                  <span style={{fontSize:9.5, color:active ? m.color : C.inkDim, fontWeight: active ? 700 : 500, letterSpacing:'0.05em'}}>{m.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{marginBottom:12}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}}>
+            <div style={{fontFamily:'ui-monospace, monospace', fontSize:8.5, color:C.inkDim, letterSpacing:'0.2em', textTransform:'uppercase'}}>학습 영역</div>
+            <button onClick={() => setActiveTab('manage')} style={{background:'transparent', border:'none', color:C.inkDim, fontSize:9.5, cursor:'pointer', fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em'}}>편집 →</button>
+          </div>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:6}}>
+            {data.axes.map(ax => {
+              const active = todayData.axes.includes(ax.id);
+              return (
+                <button key={ax.id} onClick={() => toggleAxis(ax.id)} style={{
+                  background: active ? `${ax.color}20` : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${active ? ax.color : C.line}`,
+                  padding: '10px 11px', textAlign:'left', cursor:'pointer',
+                }}>
+                  <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:3}}>
+                    <Ic d={i[ax.icon]} size={11} color={active ? ax.color : C.inkDim} />
+                    <span style={{fontSize:10, fontWeight:700, color: active ? ax.color : C.inkDim, fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em'}}>{ax.label}</span>
+                  </div>
+                  <div style={{fontSize:10.5, color: active ? C.ink : C.inkDim, lineHeight:1.3}}>{ax.sub}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{marginBottom:12}}>
+          <div style={{fontFamily:'ui-monospace, monospace', fontSize:8.5, color:C.inkDim, letterSpacing:'0.2em', marginBottom:5, textTransform:'uppercase'}}>운동 종류</div>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:5}}>
+            {EXERCISE_TYPES.map(et => {
+              const active = todayData.exerciseType === et.id;
+              const isPt = et.id === 'pt';
+              const disabled = isPt && ptDone && !active;
+              return (
+                <button key={et.id} onClick={() => !disabled && setExerciseType(et.id)} disabled={disabled} style={{
+                  background: active ? `${et.color}25` : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${active ? et.color : C.line}`,
+                  padding: '8px 6px', cursor: disabled ? 'not-allowed' : 'pointer',
+                  display:'flex', flexDirection:'column', alignItems:'center', gap:3,
+                  opacity: disabled ? 0.4 : 1,
+                }}>
+                  <Ic d={i[et.icon]} size={14} color={active ? et.color : C.inkDim} />
+                  <span style={{fontSize:11, color: active ? et.color : C.inkDim, fontWeight: active ? 700 : 500, letterSpacing:'0.05em'}}>{et.label}{isPt && ` (${ptRemaining})`}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <button onClick={() => updateToday({ cafe: !todayData.cafe })} style={{
+          width:'100%', background: todayData.cafe ? `${C.rust}20` : 'rgba(255,255,255,0.02)',
+          border: `1px solid ${todayData.cafe ? C.rust : C.line}`,
+          padding: '8px 10px', cursor:'pointer',
+          display:'flex', alignItems:'center', gap:6, justifyContent:'center', marginBottom: 12,
+        }}>
+          <Ic d={i.coffee} size={12} color={todayData.cafe ? C.rust : C.inkDim} />
+          <span style={{fontSize:11, color: todayData.cafe ? C.rust : C.inkDim, fontWeight: todayData.cafe ? 700 : 500}}>카페 {todayData.cafe && '✓'}</span>
+        </button>
+
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12, padding:'8px 12px', background:'rgba(0,0,0,0.25)', border:`1px dashed ${C.line}`}}>
+          <div style={{display:'flex', alignItems:'center', gap:7}}>
+            <Ic d={i.moon} size={12} color={C.inkDim} />
+            <span style={{fontSize:11, color:C.inkDim}}>어젯밤 수면</span>
+          </div>
+          <div style={{display:'flex', alignItems:'center', gap:8}}>
+            <button onClick={() => updateToday({sleepHrs: Math.max(4, (todayData.sleepHrs ?? 8) - 0.5)})}
+              style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, width:24, height:22, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+              <Ic d={i.minus} size={10} />
+            </button>
+            <span style={{fontSize:13, fontWeight:700, color: (todayData.sleepHrs ?? 8) >= 8 ? C.sage : C.gold, minWidth:36, textAlign:'center', fontFamily:'ui-monospace, monospace'}}>{todayData.sleepHrs ?? 8}h</span>
+            <button onClick={() => updateToday({sleepHrs: Math.min(12, (todayData.sleepHrs ?? 8) + 0.5)})}
+              style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, width:24, height:22, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+              <Ic d={i.plus} size={10} />
+            </button>
+          </div>
+        </div>
+
+        <input type="text" value={todayData.note || ''} onChange={e => updateToday({ note: e.target.value })}
+          placeholder="한 줄 메모 (선택)"
+          style={{width:'100%', padding:'9px 11px', background:'rgba(0,0,0,0.25)', border:`1px solid ${C.line}`, color:C.ink, fontSize:12, outline:'none', boxSizing:'border-box', marginBottom:8}} />
+
+        <textarea value={todayData.journal || ''} onChange={e => updateToday({ journal: e.target.value })}
+          placeholder="오늘의 일기 — 자유롭게. 빈 칸이어도 OK."
+          rows={3}
+          style={{width:'100%', padding:'9px 11px', background:'rgba(0,0,0,0.25)', border:`1px solid ${C.line}`, color:C.ink, fontSize:12, outline:'none', boxSizing:'border-box', lineHeight:1.5}} />
+      </section>
+
+      {/* Daily Self-Question — 일기 다음에 자기 질문 */}
+      <DailySelfQuestion todayData={todayData} updateToday={updateToday} />
+
+      <section style={{background:C.bg2, border:`1px solid ${ptDone ? C.sage : C.gold}`, padding:'14px 16px', marginBottom:14, position:'relative', overflow:'hidden'}}>
+        <div style={{position:'absolute', top:0, left:0, right:0, height:3, background: ptDone ? C.sage : C.gold}} />
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:10}}>
+          <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color: ptDone ? C.sage : C.gold, textTransform:'uppercase', display:'flex', alignItems:'center', gap:5}}>
+            <Ic d={i.dumbbell} size={10} />PT 30회
+          </div>
+          <div style={{fontSize:18, fontWeight:700, color:ptDone ? C.sage : C.gold, fontFamily:'Georgia, serif', fontStyle:'italic'}}>
+            {ptCompleted}<span style={{fontSize:11, color:C.inkDim, fontStyle:'normal'}}>/{PT_CONFIG.total}</span>
+          </div>
+        </div>
+        <div style={{height:6, background:C.bg3, position:'relative', overflow:'hidden', marginBottom:6}}>
+          <div style={{position:'absolute', left:0, top:0, height:'100%', width: `${(PT_CONFIG.initialDone / PT_CONFIG.total) * 100}%`, background: C.slate, opacity:0.6}} />
+          <div style={{position:'absolute', left:`${(PT_CONFIG.initialDone / PT_CONFIG.total) * 100}%`, top:0, height:'100%', width: `${((ptCompleted - PT_CONFIG.initialDone) / PT_CONFIG.total) * 100}%`, background: C.gold, transition:'width 0.4s'}} />
+        </div>
+        <div style={{fontSize:10, color:C.inkDim, fontFamily:'ui-monospace, monospace', letterSpacing:'0.05em'}}>예상 종료 · {ptDone ? '완료 ✓' : fmt(PT_CONFIG.estimatedEnd)}</div>
+      </section>
+
+      <section style={{marginBottom:14}}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
+          <span style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, textTransform:'uppercase'}}>Books</span>
+          <button onClick={() => setActiveTab('manage')} style={{background:'transparent', border:'none', color:C.inkDim, fontSize:9.5, cursor:'pointer', fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em'}}>관리 →</button>
+        </div>
+        {data.books.map(book => {
+          const pct = Math.round((book.progress / book.total) * 100);
+          const axisColor = book.axis === 'I' ? C.rust : (book.axis === 'II' ? C.gold : C.teal);
+          return (
+            <div key={book.id} style={{background:C.bg2, border:`1px solid ${C.line}`, padding:'12px 14px', marginBottom:6}}>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10, marginBottom:8}}>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:8.5, fontFamily:'ui-monospace, monospace', color: axisColor, border:`1px solid ${axisColor}`, padding:'1px 5px', letterSpacing:'0.1em', fontWeight:600, display:'inline-block', marginBottom:3}}>AXIS {book.axis}</div>
+                  <div style={{fontSize:12.5, fontWeight:700, color:C.ink, lineHeight:1.3}}>{book.title}</div>
+                  <div style={{fontSize:10, color:C.inkDim}}>{book.author}</div>
+                </div>
+                <div style={{display:'flex', alignItems:'center', gap:5, flexShrink:0}}>
+                  <button onClick={() => saveData({...data, books: data.books.map(b => b.id === book.id ? {...b, progress: Math.max(0, b.progress - 10)} : b)})}
+                    style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, width:22, height:22, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}><Ic d={i.minus} size={9} /></button>
+                  <span style={{fontSize:10, color:C.inkDim, fontFamily:'ui-monospace, monospace', minWidth:48, textAlign:'center'}}>{book.progress}/{book.total}p</span>
+                  <button onClick={() => saveData({...data, books: data.books.map(b => b.id === book.id ? {...b, progress: Math.min(b.total, b.progress + 10)} : b)})}
+                    style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, width:22, height:22, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}><Ic d={i.plus} size={9} /></button>
+                </div>
+              </div>
+              <div style={{height:3, background:C.bg3, position:'relative', overflow:'hidden'}}>
+                <div style={{position:'absolute', left:0, top:0, height:'100%', width: `${pct}%`, background: axisColor, transition:'width 0.4s'}} />
+              </div>
+            </div>
+          );
+        })}
+      </section>
+    </div>
+  );
+}
+
+function AnalysisTab({ data, range, setRange, saveData, streaks }) {
+  const stats = useMemo(() => computeStats(data.days, range), [data.days, range]);
+  const philosophy = useMemo(() => analyzePhilosophically(stats), [stats]);
+  const insights = useMemo(() => generateInsights(stats), [stats]);
+  const suggestions = useMemo(() => generateGrowthSuggestions(stats), [stats]);
+  const [openPhil, setOpenPhil] = useState(null);
+  const [openCodex, setOpenCodex] = useState(null);
+
+  return (
+    <div>
+      <SundayReview data={data} saveData={saveData} isSunday={false} forceShow={true} />
+      <MonthlyHeatmap days={data.days} axes={data.axes} />
+
+      <div style={{display:'flex', gap:6, marginBottom:14}}>
+        {[{id:'week',l:'이번 주'},{id:'month',l:'30일'},{id:'all',l:'전체'}].map(r => (
+          <button key={r.id} onClick={() => setRange(r.id)} style={{
+            flex:1, padding:'8px 10px',
+            background: range === r.id ? `${C.sage}20` : 'rgba(255,255,255,0.02)',
+            border: `1px solid ${range === r.id ? C.sage : C.line}`,
+            color: range === r.id ? C.sage : C.inkDim,
+            cursor:'pointer', fontSize:11,
+            fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em',
+          }}>{r.l}</button>
+        ))}
+      </div>
+
+      <section style={{display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:8, marginBottom:14}}>
+        <StatCard label="활동 일수" value={`${stats.activeDays}/${stats.totalDays}`} sub={`${Math.round((stats.activeDays/Math.max(stats.totalDays,1))*100)}%`} color={C.sage} />
+        <StatCard label="운동 일수" value={`${stats.exerciseDays}`} sub={`${stats.totalDays}일 중`} color={C.teal} />
+        <StatCard label="평균 수면" value={stats.sleepAvg ? `${stats.sleepAvg.toFixed(1)}h` : '—'} sub={stats.sleepAvg >= 7.5 ? '양호' : '부족'} color={stats.sleepAvg >= 7.5 ? C.sage : C.gold} />
+        <StatCard label="평균 기분" value={stats.moodAvg ? stats.moodAvg.toFixed(1) : '—'} sub="1~5 척도" color={C.gold} />
+        <StatCard label="최장 streak" value={`${streaks.longest}일`} sub="최고 기록" color={C.plum} />
+        <StatCard label="현재 활동" value={`${streaks.activity}일`} sub="진행 중" color={C.sage} />
+      </section>
+
+      {/* ===== Leader's Codex (3 cards) ===== */}
+      <section style={{marginBottom:14}}>
+        <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.gold, marginBottom:8, textTransform:'uppercase', display:'flex', alignItems:'center', gap:6}}>
+          <Ic d={i.crown} size={11} />Leader's Codex — 조언/가이드
+        </div>
+        <p style={{fontSize:11.5, color:C.inkDim, lineHeight:1.55, marginBottom:10, fontStyle:'italic', fontFamily:'Georgia, serif', padding:'0 2px'}}>
+          "지치지 않는 정교한 일상이 가장 날카로운 무기. 필요할 때 펼쳐 보세요."
+        </p>
+        {CODEX.map(entry => (
+          <CodexCard key={entry.id} entry={entry} openId={openCodex} setOpenId={setOpenCodex} />
+        ))}
+      </section>
+
+      <section style={{marginBottom:14}}>
+        <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, marginBottom:8, textTransform:'uppercase'}}>심층 인사이트</div>
+        {insights.map((ins, idx) => {
+          const colorMap = { strength: C.sage, caution: C.gold, suggest: C.teal, info: C.slate };
+          const c = colorMap[ins.type] || C.slate;
+          return (
+            <div key={idx} style={{background:C.bg2, border:`1px solid ${C.line}`, borderLeft:`3px solid ${c}`, padding:'12px 14px', marginBottom:6, display:'flex', gap:10, alignItems:'flex-start'}}>
+              <Ic d={i[ins.icon]} size={14} color={c} />
+              <span style={{fontSize:12.5, color:C.ink, lineHeight:1.55}}>{ins.text}</span>
+            </div>
+          );
+        })}
+      </section>
+
+      <section style={{marginBottom:14}}>
+        <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, marginBottom:8, textTransform:'uppercase', display:'flex', alignItems:'center', gap:6}}>
+          <Ic d={i.brain} size={11} />철학적 다차원 분석
+        </div>
+        {Object.values(philosophy).map(p => {
+          const isOpen = openPhil === p.philosopher.id;
+          return (
+            <div key={p.philosopher.id} style={{background:C.bg2, border:`1px solid ${C.line}`, marginBottom:6, overflow:'hidden'}}>
+              <button onClick={() => setOpenPhil(isOpen ? null : p.philosopher.id)} style={{
+                width:'100%', padding:'14px 16px',
+                background:'transparent', border:'none', cursor:'pointer',
+                display:'flex', justifyContent:'space-between', alignItems:'center',
+                textAlign:'left', borderLeft:`3px solid ${p.philosopher.color}`,
+              }}>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:4, flexWrap:'wrap'}}>
+                    <span style={{fontSize:13, fontWeight:700, color:C.ink, fontFamily:'Georgia, serif', fontStyle:'italic'}}>{p.philosopher.name}</span>
+                    <span style={{fontSize:9, fontFamily:'ui-monospace, monospace', color:p.philosopher.color, letterSpacing:'0.1em'}}>{p.philosopher.subtitle}</span>
+                  </div>
+                  <div style={{fontSize:10.5, color:C.inkDim, fontStyle:'italic', fontFamily:'Georgia, serif', lineHeight:1.4}}>{p.philosopher.motto}</div>
+                </div>
+                <Ic d={i.chevronRight} size={14} color={C.inkDim} />
+              </button>
+              {isOpen && (
+                <div style={{padding:'0 16px 16px 16px', borderTop:`1px solid ${C.line}`, paddingTop:12}}>
+                  <p style={{fontSize:12.5, color:C.ink, lineHeight:1.7}}>{p.text}</p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </section>
+
+      <section style={{marginBottom:14}}>
+        <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, marginBottom:8, textTransform:'uppercase'}}>성장을 위한 제안</div>
+        {suggestions.map((s, idx) => {
+          const pColor = s.priority === 1 ? C.rust : (s.priority === 2 ? C.gold : C.sage);
+          return (
+            <div key={idx} style={{background:C.bg2, border:`1px solid ${C.line}`, padding:'14px 16px', marginBottom:6, position:'relative', overflow:'hidden'}}>
+              <div style={{position:'absolute', top:0, left:0, bottom:0, width:3, background:pColor}} />
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6, gap:10}}>
+                <h4 style={{fontSize:13, fontWeight:700, color:C.ink, fontFamily:'Georgia, serif', fontStyle:'italic'}}>{s.title}</h4>
+                <span style={{fontSize:8.5, fontFamily:'ui-monospace, monospace', color:pColor, letterSpacing:'0.15em', flexShrink:0, padding:'2px 6px', border:`1px solid ${pColor}`}}>P{s.priority}</span>
+              </div>
+              <p style={{fontSize:11.5, color:C.inkDim, lineHeight:1.6}}>{s.body}</p>
+            </div>
+          );
+        })}
+      </section>
+
+      <PastReviews reviews={data.weeklyReviews || {}} />
+
+      <div style={{padding:'12px 14px', background:'rgba(155,179,138,0.04)', borderLeft:`2px solid ${C.sage}`, fontSize:10.5, color:C.inkDim, lineHeight:1.55, marginBottom:14}}>
+        <b style={{color:C.sage, fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase'}}>NOTE</b>
+        <p style={{marginTop:4}}>이 분석은 입력 데이터 패턴 기반입니다. 진짜 AI 분석을 원하면 추후 API 연결 가능 (별도 비용).</p>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, sub, color }) {
+  return (
+    <div style={{background:C.bg2, border:`1px solid ${C.line}`, padding:'12px 14px', position:'relative', overflow:'hidden'}}>
+      <div style={{position:'absolute', top:0, left:0, right:0, height:2, background:color}} />
+      <div style={{fontFamily:'ui-monospace, monospace', fontSize:8.5, color:C.inkDim, letterSpacing:'0.15em', marginBottom:4, textTransform:'uppercase'}}>{label}</div>
+      <div style={{fontSize:20, fontWeight:700, color:color, fontFamily:'Georgia, serif', fontStyle:'italic', lineHeight:1}}>{value}</div>
+      <div style={{fontSize:9.5, color:C.inkDim, marginTop:3, fontFamily:'ui-monospace, monospace'}}>{sub}</div>
+    </div>
+  );
+}
+
+function ManageTab({ data, saveData, setModal, modal }) {
+  const exportData = () => {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `tracker-${todayStr()}.json`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+  const importData = (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const imported = JSON.parse(event.target.result);
+        if (window.confirm('현재 데이터를 가져온 데이터로 덮어쓰시겠어요?')) {
+          saveData({ ...initialData(), ...imported });
+        }
+      } catch { alert('파일 형식 오류'); }
+    };
+    reader.readAsText(file);
+  };
+
+  const addAxis = () => {
+    const newAxis = { id: 'axis_' + uid(), label: '새 항목', sub: '설명', color: C.sage, icon: 'sparkles' };
+    saveData({ ...data, axes: [...data.axes, newAxis] });
+    setModal({ type: 'axis', id: newAxis.id });
+  };
+  const deleteAxis = (id) => { if (window.confirm('이 항목을 삭제하시겠어요?')) saveData({ ...data, axes: data.axes.filter(a => a.id !== id) }); };
+  const updateAxis = (id, patch) => saveData({ ...data, axes: data.axes.map(a => a.id === id ? { ...a, ...patch } : a) });
+  const addBook = () => {
+    const newBook = { id: 'book_' + uid(), title: '새 책', author: '저자', axis: 'I', progress: 0, total: 200 };
+    saveData({ ...data, books: [...data.books, newBook] });
+    setModal({ type: 'book', id: newBook.id });
+  };
+  const deleteBook = (id) => { if (window.confirm('이 책을 삭제하시겠어요?')) saveData({ ...data, books: data.books.filter(b => b.id !== id) }); };
+  const updateBook = (id, patch) => saveData({ ...data, books: data.books.map(b => b.id === id ? { ...b, ...patch } : b) });
+  const addTask = () => {
+    const newTask = { id: 'task_' + uid(), week: 1, label: '새 task' };
+    saveData({ ...data, guideTasks: [...data.guideTasks, newTask] });
+    setModal({ type: 'task', id: newTask.id });
+  };
+  const deleteTask = (id) => {
+    if (window.confirm('삭제하시겠어요?')) {
+      const newDone = { ...data.guideTasksDone }; delete newDone[id];
+      saveData({ ...data, guideTasks: data.guideTasks.filter(t => t.id !== id), guideTasksDone: newDone });
+    }
+  };
+  const updateTask = (id, patch) => saveData({ ...data, guideTasks: data.guideTasks.map(t => t.id === id ? { ...t, ...patch } : t) });
+
+  const editingAxis = modal?.type === 'axis' ? data.axes.find(a => a.id === modal.id) : null;
+  const editingBook = modal?.type === 'book' ? data.books.find(b => b.id === modal.id) : null;
+  const editingTask = modal?.type === 'task' ? data.guideTasks.find(t => t.id === modal.id) : null;
+
+  return (
+    <div>
+      <section style={{background:C.bg2, border:`1px solid ${C.line}`, padding:16, marginBottom:14}}>
+        <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, marginBottom:10, textTransform:'uppercase'}}>백업 · 동기화</div>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8}}>
+          <button onClick={exportData} style={{padding:'10px 12px', background:'rgba(74,139,139,0.15)', border:`1px solid ${C.teal}`, color:C.teal, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6, fontSize:11, fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em'}}>
+            <Ic d={i.download} size={12} />Export
+          </button>
+          <label style={{padding:'10px 12px', background:'rgba(212,164,76,0.15)', border:`1px solid ${C.gold}`, color:C.gold, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6, fontSize:11, fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em'}}>
+            <Ic d={i.upload} size={12} />Import
+            <input type="file" accept=".json" onChange={importData} style={{display:'none'}} />
+          </label>
+        </div>
+        <p style={{fontSize:10.5, color:C.inkDim, lineHeight:1.5, marginTop:10}}>Export로 데이터를 JSON 파일로 저장. <b style={{color:C.ink}}>월 1회 백업 권장.</b></p>
+      </section>
+
+      <section style={{marginBottom:14}}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
+          <span style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, textTransform:'uppercase'}}>학습 영역</span>
+          <button onClick={addAxis} style={{padding:'4px 10px', background:`${C.sage}20`, border:`1px solid ${C.sage}`, color:C.sage, cursor:'pointer', fontSize:10, fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em', display:'flex', alignItems:'center', gap:4}}>
+            <Ic d={i.plus} size={9} />추가
+          </button>
+        </div>
+        {data.axes.map(ax => (
+          <div key={ax.id} style={{background:C.bg2, border:`1px solid ${C.line}`, borderLeft:`3px solid ${ax.color}`, padding:'12px 14px', marginBottom:5, display:'flex', justifyContent:'space-between', alignItems:'center', gap:8}}>
+            <div style={{flex:1, minWidth:0, display:'flex', alignItems:'center', gap:10}}>
+              <Ic d={i[ax.icon]} size={14} color={ax.color} />
+              <div>
+                <div style={{fontSize:12.5, color:C.ink, fontWeight:700}}>{ax.label}</div>
+                <div style={{fontSize:10, color:C.inkDim}}>{ax.sub}</div>
+              </div>
+            </div>
+            <div style={{display:'flex', gap:4}}>
+              <button onClick={() => setModal({type:'axis', id:ax.id})} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, padding:5, cursor:'pointer', display:'flex'}}><Ic d={i.edit} size={11} /></button>
+              <button onClick={() => deleteAxis(ax.id)} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.rust, padding:5, cursor:'pointer', display:'flex'}}><Ic d={i.trash} size={11} /></button>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section style={{marginBottom:14}}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
+          <span style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, textTransform:'uppercase'}}>책 관리</span>
+          <button onClick={addBook} style={{padding:'4px 10px', background:`${C.sage}20`, border:`1px solid ${C.sage}`, color:C.sage, cursor:'pointer', fontSize:10, fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em', display:'flex', alignItems:'center', gap:4}}>
+            <Ic d={i.plus} size={9} />추가
+          </button>
+        </div>
+        {data.books.map(book => (
+          <div key={book.id} style={{background:C.bg2, border:`1px solid ${C.line}`, padding:'10px 14px', marginBottom:5, display:'flex', justifyContent:'space-between', alignItems:'center', gap:8}}>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontSize:12, color:C.ink, fontWeight:700, marginBottom:2}}>{book.title}</div>
+              <div style={{fontSize:10, color:C.inkDim}}>{book.author} · Axis {book.axis} · {book.progress}/{book.total}p</div>
+            </div>
+            <div style={{display:'flex', gap:4, flexShrink:0}}>
+              <button onClick={() => setModal({type:'book', id:book.id})} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, padding:5, cursor:'pointer', display:'flex'}}><Ic d={i.edit} size={11} /></button>
+              <button onClick={() => deleteBook(book.id)} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.rust, padding:5, cursor:'pointer', display:'flex'}}><Ic d={i.trash} size={11} /></button>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section style={{marginBottom:14}}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
+          <span style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, textTransform:'uppercase'}}>가이드 Tasks</span>
+          <button onClick={addTask} style={{padding:'4px 10px', background:`${C.sage}20`, border:`1px solid ${C.sage}`, color:C.sage, cursor:'pointer', fontSize:10, fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em', display:'flex', alignItems:'center', gap:4}}>
+            <Ic d={i.plus} size={9} />추가
+          </button>
+        </div>
+        {[1,2,3,4,5].map(week => {
+          const weekTasks = data.guideTasks.filter(t => t.week === week);
+          if (weekTasks.length === 0) return null;
+          return (
+            <div key={week} style={{marginBottom:8}}>
+              <div style={{fontSize:9.5, fontFamily:'ui-monospace, monospace', color:C.sage, letterSpacing:'0.2em', marginBottom:4, textTransform:'uppercase', opacity:0.7}}>Week {week}</div>
+              {weekTasks.map(t => {
+                const done = !!data.guideTasksDone[t.id];
+                return (
+                  <div key={t.id} style={{background:C.bg2, border:`1px solid ${C.line}`, padding:'8px 12px', marginBottom:3, display:'flex', justifyContent:'space-between', alignItems:'center', gap:8}}>
+                    <button onClick={() => saveData({...data, guideTasksDone: {...data.guideTasksDone, [t.id]: !done}})} style={{
+                      width:14, height:14,
+                      border: `1px solid ${done ? C.sage : C.line}`,
+                      background: done ? C.sage : 'transparent',
+                      cursor:'pointer', flexShrink:0,
+                      display:'flex', alignItems:'center', justifyContent:'center'
+                    }}>{done && <Ic d={i.check} size={9} color={C.bg} strokeWidth={3} />}</button>
+                    <span style={{flex:1, fontSize:11, color: done ? C.inkDim : C.ink, textDecoration: done ? 'line-through' : 'none', lineHeight:1.4}}>{t.label}</span>
+                    <div style={{display:'flex', gap:3, flexShrink:0}}>
+                      <button onClick={() => setModal({type:'task', id:t.id})} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, padding:4, cursor:'pointer', display:'flex'}}><Ic d={i.edit} size={9} /></button>
+                      <button onClick={() => deleteTask(t.id)} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.rust, padding:4, cursor:'pointer', display:'flex'}}><Ic d={i.trash} size={9} /></button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </section>
+
+      <section style={{marginBottom:14}}>
+        <button onClick={() => {
+          if (window.confirm('모든 데이터를 초기화하시겠어요? Export 백업 먼저 권장.')) saveData(initialData());
+        }} style={{width:'100%', padding:'10px', background:'rgba(199,86,64,0.1)', border:`1px solid ${C.rust}`, color:C.rust, cursor:'pointer', fontSize:10.5, fontFamily:'ui-monospace, monospace', letterSpacing:'0.15em', display:'flex', alignItems:'center', justifyContent:'center', gap:6, textTransform:'uppercase'}}>
+          <Ic d={i.rotate} size={11} />전체 초기화
+        </button>
+      </section>
+
+      <Modal open={!!editingAxis} onClose={() => setModal(null)} title="Edit Axis">
+        {editingAxis && <AxisEditor axis={editingAxis} onUpdate={(patch) => updateAxis(editingAxis.id, patch)} />}
+      </Modal>
+      <Modal open={!!editingBook} onClose={() => setModal(null)} title="Edit Book">
+        {editingBook && <BookEditor book={editingBook} onUpdate={(patch) => updateBook(editingBook.id, patch)} />}
+      </Modal>
+      <Modal open={!!editingTask} onClose={() => setModal(null)} title="Edit Task">
+        {editingTask && <TaskEditor task={editingTask} onUpdate={(patch) => updateTask(editingTask.id, patch)} />}
+      </Modal>
+    </div>
+  );
+}
+
+const inputStyle = { width:'100%', padding:'8px 10px', background:'rgba(0,0,0,0.25)', border:`1px solid ${C.line}`, color:C.ink, fontSize:12, outline:'none', boxSizing:'border-box', marginBottom:10 };
+const labelStyle = { fontSize:9.5, fontFamily:'ui-monospace, monospace', color:C.inkDim, letterSpacing:'0.15em', marginBottom:4, display:'block', textTransform:'uppercase' };
+
+function AxisEditor({ axis, onUpdate }) {
+  return (
+    <div>
+      <label style={labelStyle}>이름</label>
+      <input style={inputStyle} value={axis.label} onChange={e => onUpdate({ label: e.target.value })} />
+      <label style={labelStyle}>설명</label>
+      <input style={inputStyle} value={axis.sub} onChange={e => onUpdate({ sub: e.target.value })} />
+      <label style={labelStyle}>아이콘</label>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(6, 1fr)', gap:5, marginBottom:10}}>
+        {ICON_OPTIONS.map(iname => (
+          <button key={iname} onClick={() => onUpdate({ icon: iname })} style={{
+            padding:8, background: axis.icon === iname ? `${axis.color}30` : 'rgba(0,0,0,0.25)',
+            border:`1px solid ${axis.icon === iname ? axis.color : C.line}`,
+            cursor:'pointer', display:'flex', justifyContent:'center', alignItems:'center'
+          }}>
+            <Ic d={i[iname]} size={14} color={axis.icon === iname ? axis.color : C.inkDim} />
+          </button>
+        ))}
+      </div>
+      <label style={labelStyle}>색상</label>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(6, 1fr)', gap:5}}>
+        {COLOR_OPTIONS.map(c => (
+          <button key={c} onClick={() => onUpdate({ color: c })} style={{
+            height:30, background: c, opacity: axis.color === c ? 1 : 0.5,
+            border:`2px solid ${axis.color === c ? C.ink : 'transparent'}`,
+            cursor:'pointer'
+          }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BookEditor({ book, onUpdate }) {
+  return (
+    <div>
+      <label style={labelStyle}>제목</label>
+      <input style={inputStyle} value={book.title} onChange={e => onUpdate({ title: e.target.value })} />
+      <label style={labelStyle}>저자</label>
+      <input style={inputStyle} value={book.author} onChange={e => onUpdate({ author: e.target.value })} />
+      <label style={labelStyle}>Axis</label>
+      <select value={book.axis} onChange={e => onUpdate({ axis: e.target.value })} style={inputStyle}>
+        <option value="I">I (지경학+사회과학)</option>
+        <option value="II">II (에너지경제학)</option>
+        <option value="III">III</option>
+        <option value="IV">IV</option>
+      </select>
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8}}>
+        <div>
+          <label style={labelStyle}>현재</label>
+          <input type="number" style={inputStyle} value={book.progress} onChange={e => onUpdate({ progress: parseInt(e.target.value) || 0 })} />
+        </div>
+        <div>
+          <label style={labelStyle}>총 페이지</label>
+          <input type="number" style={inputStyle} value={book.total} onChange={e => onUpdate({ total: parseInt(e.target.value) || 1 })} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TaskEditor({ task, onUpdate }) {
+  return (
+    <div>
+      <label style={labelStyle}>주차 (1~5)</label>
+      <input type="number" min="1" max="5" style={inputStyle} value={task.week} onChange={e => onUpdate({ week: parseInt(e.target.value) || 1 })} />
+      <label style={labelStyle}>내용</label>
+      <textarea style={{...inputStyle, minHeight:60, resize:'vertical'}} value={task.label} onChange={e => onUpdate({ label: e.target.value })} />
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

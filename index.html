@@ -451,6 +451,9 @@ function App() {
     } catch (e) { console.error(e); }
   };
 
+  // ⚠ useMemo must be called before any conditional return (React Hooks rules)
+  const streaks = useMemo(() => data ? calculateStreaks(data.days) : { activity: 0, exercise: 0, journal: 0, longest: 0 }, [data]);
+
   if (!data) return (<div style={{minHeight:'100vh', background:C.bg, color:C.inkDim, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontFamily:'monospace', letterSpacing:'0.1em'}}>loading...</div>);
 
   const today = todayStr();
@@ -470,7 +473,6 @@ function App() {
 
   const todayDay = ['일','월','화','수','목','금','토'][new Date(today).getDay()];
   const isSunday = new Date(today).getDay() === 0;
-  const streaks = useMemo(() => calculateStreaks(data.days), [data.days]);
 
   const TABS = [
     { id: 'today', label: 'Today', icon: 'home' },

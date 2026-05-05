@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0d0f17">
+<meta name="theme-color" content="#080b14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Tracker">
@@ -11,63 +11,251 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%239bb38a'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%2334d399'/></svg>">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
-    background: #0d0f17;
-    color: #ecead8;
+    background: #080b14;
+    color: #f0f2f8;
     font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
     overflow-x: hidden;
   }
   body { min-height: 100vh; min-height: 100dvh; }
-  button { font-family: inherit; }
+  button { font-family: inherit; cursor: pointer; }
   input, textarea, select { font-family: inherit; }
   textarea { resize: vertical; }
-  #root { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+  #root { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); position: relative; z-index: 1; }
 
-  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; display: flex; align-items: flex-end; animation: fadeIn 0.2s; }
+  /* Ambient background orbs */
+  .bg-orb {
+    position: fixed; pointer-events: none; z-index: 0;
+    border-radius: 50%;
+    filter: blur(80px);
+  }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(4,6,15,0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 100; display: flex; align-items: flex-end;
+    animation: fadeIn 0.2s ease;
+  }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes slideUp { from { transform: translateY(20px); } to { transform: translateY(0); } }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
-  .modal-body { width: 100%; max-width: 520px; margin: 0 auto; background: #141826; border-top: 2px solid #9bb38a; max-height: 90vh; overflow-y: auto; animation: slideUp 0.25s; }
+  @keyframes slideUp { from { transform: translateY(28px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+  @keyframes pop { 0%{transform:scale(0.95)}50%{transform:scale(1.03)}100%{transform:scale(1)} }
+  @keyframes glow { 0%,100%{box-shadow:0 0 12px rgba(52,211,153,0.2)} 50%{box-shadow:0 0 28px rgba(52,211,153,0.45)} }
+
+  .modal-body {
+    width: 100%; max-width: 520px; margin: 0 auto;
+    background: #0f1322;
+    border-top: 1px solid rgba(52,211,153,0.3);
+    box-shadow: 0 -24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04);
+    max-height: 90vh; overflow-y: auto;
+    animation: slideUp 0.28s cubic-bezier(0.22,1,0.36,1);
+  }
   @media (min-width: 600px) {
     .modal-bg { align-items: center; padding: 20px; }
-    .modal-body { max-height: 85vh; border-radius: 4px; border: 1px solid #2a2c3e; border-top: 2px solid #9bb38a; }
+    .modal-body {
+      max-height: 85vh; border-radius: 20px;
+      border: 1px solid rgba(52,211,153,0.2);
+      box-shadow: 0 32px 100px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04);
+    }
   }
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: #0d0f17; }
-  ::-webkit-scrollbar-thumb { background: #2a2c3e; }
 
-  .heatmap-cell { transition: transform 0.1s; cursor: pointer; }
-  .heatmap-cell:hover { transform: scale(1.15); z-index: 2; }
-  .pulse { animation: pulse 2s ease-in-out infinite; }
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+  .heatmap-cell {
+    transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.12s;
+    cursor: pointer; border-radius: 5px !important;
+    overflow: hidden;
+  }
+  .heatmap-cell:hover { transform: scale(1.25); z-index: 2; box-shadow: 0 0 14px rgba(52,211,153,0.4) !important; }
+  .pulse { animation: pulse 2.2s ease-in-out infinite; }
+
+  /* Card glass surface */
+  .glass-card {
+    background: rgba(15,19,34,0.9);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .glass-card:hover { border-color: rgba(255,255,255,0.1); }
+
+  /* Gradient borders */
+  .border-sage { border-color: rgba(52,211,153,0.35) !important; }
+  .border-gold { border-color: rgba(251,191,36,0.35) !important; }
+
+  /* Button effects */
+  .btn-press { transition: transform 0.12s, opacity 0.12s; }
+  .btn-press:active { transform: scale(0.95) !important; opacity: 0.85; }
+
+  /* Streak fire badge */
+  .fire-badge {
+    animation: glow 2s ease-in-out infinite;
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    border-radius: 4px;
+  }
+
+  /* Tab bar */
+  .tab-bar {
+    display: flex;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 4px;
+    gap: 3px;
+  }
+  .tab-btn {
+    flex: 1; border: none; border-radius: 10px;
+    cursor: pointer; transition: all 0.22s cubic-bezier(0.34,1,0.64,1);
+    font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px 6px;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    background: transparent;
+    color: rgba(148,163,184,0.7);
+  }
+  .tab-btn.active {
+    background: rgba(52,211,153,0.12);
+    color: #34d399;
+    box-shadow: 0 1px 12px rgba(52,211,153,0.1), inset 0 1px 0 rgba(52,211,153,0.15);
+  }
+  .tab-btn:hover:not(.active) {
+    background: rgba(255,255,255,0.04);
+    color: rgba(240,242,248,0.7);
+  }
+
+  /* Mood button */
+  .mood-btn { transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1); border-radius: 12px; }
+  .mood-btn:hover { transform: scale(1.06) translateY(-2px); }
+  .mood-btn.active { animation: pop 0.25s ease; }
+
+  /* Input field */
+  .field {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    color: #f0f2f8;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    padding: 10px 13px;
+    line-height: 1.5;
+  }
+  .field:focus {
+    border-color: rgba(52,211,153,0.4);
+    box-shadow: 0 0 0 3px rgba(52,211,153,0.08);
+  }
+  .field::placeholder { color: rgba(148,163,184,0.45); }
+
+  /* Section header */
+  .section-tag {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-feature-settings: 'ss01';
+  }
+
+  /* Stat card */
+  .stat-pill {
+    border-radius: 12px;
+    padding: 12px 10px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  /* Toggle button */
+  .toggle-btn {
+    border-radius: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.02);
+    color: rgba(148,163,184,0.7);
+    font-size: 11.5px;
+    font-weight: 500;
+    transition: all 0.18s cubic-bezier(0.34,1.3,0.64,1);
+    display: flex; align-items: center; gap: 7px;
+    cursor: pointer;
+  }
+  .toggle-btn.active {
+    background: rgba(52,211,153,0.1);
+    border-color: rgba(52,211,153,0.3);
+    color: #34d399;
+  }
+  .toggle-btn:hover:not(.active) {
+    border-color: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04);
+    color: #f0f2f8;
+  }
+
+  /* Progress bar */
+  .progress-track {
+    height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.06);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 2px;
+    transition: width 0.6s cubic-bezier(0.34,1,0.64,1);
+  }
+
+  /* Accordion */
+  .accordion-header {
+    width: 100%; border: none; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px;
+    text-align: left;
+    background: transparent;
+    transition: background 0.15s;
+    border-radius: 12px;
+  }
+  .accordion-header:hover { background: rgba(255,255,255,0.03); }
 </style>
 </head>
 <body>
-<div id="root"></div>
 
+<!-- Ambient orbs -->
+<div class="bg-orb" style="width:500px;height:500px;top:-200px;left:-150px;background:radial-gradient(circle,rgba(52,211,153,0.05) 0%,transparent 70%)"></div>
+<div class="bg-orb" style="width:400px;height:400px;bottom:-150px;right:-100px;background:radial-gradient(circle,rgba(34,211,238,0.04) 0%,transparent 70%)"></div>
+
+<div id="root"></div>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
 <script type="text/babel" data-presets="react">
-const { useState, useEffect, useMemo } = React;
+const { useState, useEffect, useMemo, useCallback } = React;
 
 const STORAGE_KEY = 'lifestyle-tracker-v8';
 const STORAGE_KEY_LEGACY_V7 = 'lifestyle-tracker-v7';
 const STORAGE_KEY_LEGACY_V6 = 'lifestyle-tracker-v6';
 
+// ===== REDESIGNED COLOR SYSTEM =====
 const C = {
-  bg: '#0d0f17', bg2: '#141826', bg3: '#1c2132',
-  ink: '#ecead8', inkDim: '#8c8d83', line: '#2a2c3e',
-  sage: '#9bb38a', gold: '#d4a44c', teal: '#4a8b8b',
-  rust: '#c75640', plum: '#8b5a8c', slate: '#5e6779'
+  bg: '#080b14', bg2: '#0f1322', bg3: '#161c30',
+  ink: '#f0f2f8', inkDim: '#64748b', inkMid: '#94a3b8', line: 'rgba(255,255,255,0.07)',
+  sage: '#34d399', gold: '#fbbf24', teal: '#22d3ee',
+  rust: '#f87171', plum: '#a78bfa', slate: '#94a3b8',
+  sageDim: 'rgba(52,211,153,0.1)', goldDim: 'rgba(251,191,36,0.1)',
+  tealDim: 'rgba(34,211,238,0.1)', rustDim: 'rgba(248,113,113,0.1)',
+  plumDim: 'rgba(167,139,250,0.1)', slateDim: 'rgba(148,163,184,0.1)',
 };
 
-const Ic = ({ d, size = 14, color = 'currentColor', strokeWidth = 2 }) => (
+const Ic = ({ d, size = 14, color = 'currentColor', strokeWidth = 1.8 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
     {typeof d === 'string' ? <path d={d} /> : d}
   </svg>
@@ -97,6 +285,7 @@ const i = {
   brain: 'M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2zM14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2z',
   chevronRight: 'm9 18 6-6-6-6',
   chevronLeft: 'm15 18-6-6 6-6',
+  chevronDown: 'm6 9 6 6 6-6',
   pen: 'M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z',
   bar: <><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></>,
   home: <><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
@@ -133,14 +322,10 @@ const MOODS = [
 const ICON_OPTIONS = ['sparkles','book','wrench','file','dumbbell','footprints','coffee','brain','pen','bar','home'];
 const COLOR_OPTIONS = [C.rust, C.gold, C.teal, C.sage, C.plum, C.slate];
 
-// ===== Leader's Codex - 3 guidance cards =====
 const CODEX = [
   {
-    id: 'sovereign',
-    title: '지배자의 루틴',
-    subtitle: '수동적 능동성을 경계하라',
-    icon: 'crown',
-    color: C.gold,
+    id: 'sovereign', title: '지배자의 루틴', subtitle: '수동적 능동성을 경계하라',
+    icon: 'crown', color: C.gold,
     intro: '남들이 시키는 일을 열심히 하는 것은 \'수동적 능동성\'일 뿐. 당신의 루틴은 스스로 설계한 것이어야 한다.',
     motto: '"일반적인 잣대는 일반인에게나 적용하라. 나는 나만의 궤도를 달리는 1%다."',
     practices: [
@@ -150,11 +335,8 @@ const CODEX = [
     ]
   },
   {
-    id: 'restraint',
-    title: '절제의 미학',
-    subtitle: '성취 끝에 오는 고귀한 낭만',
-    icon: 'scale',
-    color: C.plum,
+    id: 'restraint', title: '절제의 미학', subtitle: '성취 끝에 오는 고귀한 낭만',
+    icon: 'scale', color: C.plum,
     intro: '단순한 참음이 아니라, 더 큰 가치를 위해 오늘의 에너지를 아끼고 벼리는 과정이다.',
     motto: '"감성은 구걸하는 것이 아니라, 압도적인 성취 끝에 절로 배어 나오는 품격이다."',
     practices: [
@@ -164,11 +346,8 @@ const CODEX = [
     ]
   },
   {
-    id: 'leader',
-    title: '리더의 실행',
-    subtitle: '결과로 증명하는 압도적 실력',
-    icon: 'target',
-    color: C.rust,
+    id: 'leader', title: '리더의 실행', subtitle: '결과로 증명하는 압도적 실력',
+    icon: 'target', color: C.rust,
     intro: '부족함을 인정하는 것은 겸손이 아니라, 더 강력해지기 위한 전략적 판단이다.',
     motto: '"나무조차 바위를 뚫고 뿌리를 내린다. 환경을 탓하는 것은 리더의 언어가 아니다."',
     practices: [
@@ -179,12 +358,125 @@ const CODEX = [
   },
 ];
 
-// ===== Daily Self-Questions =====
 const SELF_QUESTIONS = [
   { id: 'q_agency', dim: '주체성', q: '오늘 나는 남이 정해준 길을 갔는가, 내가 만든 길을 확장했는가?', color: C.gold },
   { id: 'q_density', dim: '밀도', q: '오늘 나의 루틴은 1%의 리더다운 밀도였는가, 아니면 적당한 타협이었는가?', color: C.plum },
   { id: 'q_value', dim: '가치', q: '오늘 나의 노력이 훗날 내가 꿈꾸는 \'진짜 환상\'의 벽돌 한 장이 되었는가?', color: C.rust },
 ];
+
+const PHILOSOPHERS = [
+  { id: 'socrates', name: '소크라테스', subtitle: 'Self-Examination', color: C.gold, motto: '"검토되지 않은 삶은 살 가치가 없다"' },
+  { id: 'aristotle', name: '아리스토텔레스', subtitle: 'Eudaimonia · Habit', color: C.teal, motto: '"우리는 반복적으로 행하는 것의 결과다"' },
+  { id: 'aurelius', name: '마르쿠스 아우렐리우스', subtitle: 'Stoic Discipline', color: C.slate, motto: '"통제할 수 있는 것에 집중하라"' },
+  { id: 'frankl', name: '빅터 프랭클', subtitle: 'Logotherapy · Meaning', color: C.plum, motto: '"의미 없는 삶은 견딜 수 없는 고통이다"' },
+  { id: 'sartre', name: '장 폴 사르트르', subtitle: 'Existentialism · Choice', color: C.rust, motto: '"인간은 자유롭도록 저주받았다"' },
+];
+
+function analyzePhilosophically(stats) {
+  const { activeDays, exerciseDays, sleepAvg, axisCount, moodAvg, totalDays, journalDays } = stats;
+  const consistency = activeDays / Math.max(totalDays, 1);
+  const exerciseRate = exerciseDays / Math.max(totalDays, 1);
+  const reflectionRate = journalDays / Math.max(totalDays, 1);
+  const sleepHealth = sleepAvg >= 7.5;
+
+  let socrates = reflectionRate > 0.6
+    ? `자기 검토의 빈도가 높습니다. ${journalDays}일 동안 일기를 작성하셨어요. 이는 'γνῶθι σεαυτόν'(너 자신을 알라)을 실천하는 모습입니다. 다만 답을 적기보다 좋은 질문을 적는 날이 더 깊은 통찰을 줍니다.`
+    : reflectionRate > 0.3
+    ? `검토의 습관이 자라고 있어요. "오늘 내가 한 선택은 정말 내가 원한 것이었나?" 같은 질문을 일주일에 2~3번 해보면 자기 인식이 깊어집니다.`
+    : `소크라테스가 말한 검토되지 않은 삶에 가까운 패턴입니다. 행동은 있지만 그 행동에 대한 질문이 적어요. 한 줄 메모라도 "왜 그랬을까?"를 적어보세요.`;
+
+  let aristotle = consistency > 0.7
+    ? `훌륭한 습관이 형성되고 있습니다. 아리스토텔레스는 덕(arete)이 반복되는 작은 행위에서 나온다 했어요. ${Math.round(consistency*100)}%의 활동률은 그 자체로 이미 성취입니다.`
+    : consistency > 0.4
+    ? `습관 형성의 중간 단계예요. 너무 큰 목표보다 오늘 하나에 집중하세요.`
+    : `아직 습관이 자리잡지 않은 단계입니다. 책을 책상이 아닌 침대 옆에 두기 같은 작은 트리거가 의지보다 강합니다.`;
+
+  let aurelius = (exerciseRate > 0.6 && sleepHealth)
+    ? `몸과 정신 모두 통제하고 있습니다. 운동 ${exerciseDays}일, 평균 수면 ${sleepAvg?.toFixed(1)}시간 — 이는 통제 가능한 영역에 충실한 모습.`
+    : (exerciseRate > 0.3 || sleepHealth)
+    ? `통제 가능한 것과 불가능한 것의 구분이 필요한 시기예요. 작은 일관성을 자축하세요.`
+    : `스토아 철학자가 강조한 선택 능력이 약해진 상태일 수 있어요. 오늘 아침 한 가지 작은 의식적 선택부터 회복해보세요.`;
+
+  let frankl = axisCount > 8
+    ? `다양한 영역에 의미를 분산시키고 있습니다. ${axisCount}개의 axis 활동은 의미 있는 다층 구조.`
+    : axisCount > 3
+    ? `의미 부여가 진행 중인 단계입니다. 작업 자체보다 그 작업의 의미를 한 줄로 적어두면 동력이 유지됩니다.`
+    : `활동량이 줄어든 시기일 수 있어요. 내일 한 가지 약속을 정하세요. 그게 의미의 씨앗이 됩니다.`;
+
+  let sartre = (moodAvg && moodAvg < 2.5)
+    ? `사르트르의 bad faith(자기기만)를 경계해야 할 시기입니다. 다음 1시간을 어떻게 쓸지는 100% 본인 선택입니다.`
+    : consistency > 0.5
+    ? `사르트르의 engagement(참여) 상태입니다. 본인이 선택한 가치에 행동으로 답하고 있어요.`
+    : `선택지가 너무 많아 마비되는 것도 자유의 부작용. 지금 이 순간 한 가지만 선택하기.`;
+
+  return {
+    socrates: { philosopher: PHILOSOPHERS[0], text: socrates },
+    aristotle: { philosopher: PHILOSOPHERS[1], text: aristotle },
+    aurelius: { philosopher: PHILOSOPHERS[2], text: aurelius },
+    frankl: { philosopher: PHILOSOPHERS[3], text: frankl },
+    sartre: { philosopher: PHILOSOPHERS[4], text: sartre },
+  };
+}
+
+function generateInsights(stats) {
+  const insights = [];
+  const { activeDays, exerciseDays, sleepAvg, totalDays, journalDays, axisBreakdown } = stats;
+  if (totalDays >= 3) {
+    if (activeDays / totalDays > 0.7) insights.push({ type:'strength', icon:'check', text:`높은 일관성 — ${totalDays}일 중 ${activeDays}일 활동. 이미 형성된 리듬이 자산입니다.` });
+    if (exerciseDays / totalDays > 0.6) insights.push({ type:'strength', icon:'check', text:`운동 빈도 양호 — 신체와 정신이 함께 작동하는 상태.` });
+    if (sleepAvg && sleepAvg >= 7.5) insights.push({ type:'strength', icon:'check', text:`수면이 잘 지켜지고 있어요 — 가장 어려운 비협상 영역을 해내는 중.` });
+    if (sleepAvg && sleepAvg < 7) insights.push({ type:'caution', icon:'alert', text:`수면 평균 ${sleepAvg.toFixed(1)}h — 7시간 미만은 cognitive 성과 직결 손실.` });
+    if (exerciseDays / totalDays < 0.3 && totalDays >= 5) insights.push({ type:'caution', icon:'alert', text:`운동 빈도 낮음. 가벼운 산책이라도 추가해보세요.` });
+    if (axisBreakdown && Object.keys(axisBreakdown).length === 1) insights.push({ type:'suggest', icon:'sparkles', text:`한 axis에만 집중 중. 다양성이 회복력을 만듭니다.` });
+    if (journalDays / totalDays < 0.3 && totalDays >= 7) insights.push({ type:'suggest', icon:'pen', text:`기록(메모/일기)이 적은 편. 한 줄이라도 자기 검토는 장기적으로 가장 큰 ROI.` });
+  }
+  if (insights.length === 0) insights.push({ type:'info', icon:'sparkles', text:`데이터가 더 쌓이면 깊은 인사이트가 나옵니다. 일단 1주일 채워보세요.` });
+  return insights;
+}
+
+function generateGrowthSuggestions(stats) {
+  const out = [];
+  const { exerciseDays, sleepAvg, totalDays, journalDays, axisBreakdown } = stats;
+  if (totalDays < 7) out.push({ title: '첫 주 완주', body: '아직 데이터가 적어요. 7일 채우면 첫 패턴이 보입니다. 완벽 X, 일단 자리에 앉기.', priority: 1 });
+  if (sleepAvg && sleepAvg < 7.5) out.push({ title: '수면 30분 앞당기기', body: '23:30 취침을 23:00로. 다른 어떤 변화보다 효과 큽니다.', priority: 1 });
+  if (exerciseDays / Math.max(totalDays,1) < 0.4) out.push({ title: '운동 마찰 줄이기', body: '운동복 미리 꺼내두기. 의지보다 환경이 강합니다.', priority: 2 });
+  if (axisBreakdown && Object.values(axisBreakdown).length < 2 && totalDays >= 7) out.push({ title: '주제 다양화', body: '다음 주 1번이라도 다른 axis 시도 — 회복력 = 다양성.', priority: 2 });
+  if (journalDays / Math.max(totalDays,1) < 0.3 && totalDays >= 5) out.push({ title: '주 2회 일기', body: '"오늘 가장 좋았던 1순간 + 가장 어려웠던 1순간" 5분이면 충분.', priority: 2 });
+  if (out.length === 0) out.push({ title: '현재 페이스 유지', body: '큰 변화 필요 없음. 4주 후 다시 검토.', priority: 3 });
+  return out.sort((a,b) => a.priority - b.priority);
+}
+
+function computeStats(days, range) {
+  const allDates = Object.keys(days).sort();
+  let targetDates = allDates;
+  if (range === 'week') {
+    const end = new Date(); end.setHours(0,0,0,0);
+    const start = new Date(end); start.setDate(end.getDate() - 6);
+    targetDates = allDates.filter(d => new Date(d) >= start && new Date(d) <= end);
+  } else if (range === 'month') {
+    const end = new Date(); end.setHours(0,0,0,0);
+    const start = new Date(end); start.setDate(end.getDate() - 29);
+    targetDates = allDates.filter(d => new Date(d) >= start && new Date(d) <= end);
+  }
+  const totalDays = range === 'week' ? 7 : (range === 'month' ? 30 : Math.max(targetDates.length, 1));
+  const targetData = targetDates.map(d => days[d]).filter(Boolean);
+  const activeDays = targetData.filter(d => d.axes && d.axes.length > 0).length;
+  const exerciseDays = targetData.filter(d => d.exerciseType).length;
+  const journalDays = targetData.filter(d => (d.note && d.note.trim()) || (d.journal && d.journal.trim())).length;
+  const sleeps = targetData.filter(d => d.sleepHrs).map(d => d.sleepHrs);
+  const sleepAvg = sleeps.length ? sleeps.reduce((a,b) => a+b, 0) / sleeps.length : null;
+  const moods = targetData.filter(d => d.mood).map(d => d.mood);
+  const moodAvg = moods.length ? moods.reduce((a,b) => a+b, 0) / moods.length : null;
+  let axisCount = 0;
+  const axisBreakdown = {};
+  targetData.forEach(d => {
+    if (d.axes) {
+      axisCount += d.axes.length;
+      d.axes.forEach(a => { axisBreakdown[a] = (axisBreakdown[a] || 0) + 1; });
+    }
+  });
+  return { totalDays, activeDays, exerciseDays, journalDays, sleepAvg, moodAvg, axisCount, axisBreakdown };
+}
 
 const initialData = () => ({
   startDate: '2026-05-04',
@@ -226,7 +518,6 @@ const fmt = (s) => {
   return `${d.getMonth()+1}/${d.getDate()}(${day})`;
 };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
-
 const getWeekKey = (dateStr) => {
   const d = dateStr ? new Date(dateStr) : new Date();
   d.setHours(0,0,0,0);
@@ -241,9 +532,7 @@ const getWeekNum = (d) => {
   target.setDate(target.getDate() - dayNum + 3);
   const firstThursday = target.valueOf();
   target.setMonth(0, 1);
-  if (target.getDay() !== 4) {
-    target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
-  }
+  if (target.getDay() !== 4) target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
   return 1 + Math.ceil((firstThursday - target) / 604800000);
 };
 
@@ -251,7 +540,6 @@ function calculateStreaks(days) {
   const sorted = Object.keys(days).sort();
   if (sorted.length === 0) return { activity: 0, exercise: 0, journal: 0, longest: 0 };
   const today = todayStr();
-
   const checkDay = (date, type) => {
     const d = days[date];
     if (!d) return false;
@@ -260,22 +548,17 @@ function calculateStreaks(days) {
     if (type === 'journal') return (d.note && d.note.trim()) || (d.journal && d.journal.trim());
     return false;
   };
-
   const computeStreak = (type) => {
     let streak = 0;
     let checkDate = new Date();
-    const todayFilled = checkDay(today, type);
-    if (!todayFilled) checkDate.setDate(checkDate.getDate() - 1);
+    if (!checkDay(today, type)) checkDate.setDate(checkDate.getDate() - 1);
     while (true) {
       const ds = `${checkDate.getFullYear()}-${String(checkDate.getMonth()+1).padStart(2,'0')}-${String(checkDate.getDate()).padStart(2,'0')}`;
-      if (checkDay(ds, type)) {
-        streak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else break;
+      if (checkDay(ds, type)) { streak++; checkDate.setDate(checkDate.getDate() - 1); }
+      else break;
     }
     return streak;
   };
-
   let longest = 0, current = 0, prevDate = null;
   sorted.forEach(d => {
     if (checkDay(d, 'activity')) {
@@ -287,147 +570,1040 @@ function calculateStreaks(days) {
       prevDate = d;
     } else { current = 0; prevDate = d; }
   });
-
   return { activity: computeStreak('activity'), exercise: computeStreak('exercise'), journal: computeStreak('journal'), longest };
 }
 
-const PHILOSOPHERS = [
-  { id: 'socrates', name: '소크라테스', subtitle: 'Self-Examination', color: C.gold, motto: '"검토되지 않은 삶은 살 가치가 없다"' },
-  { id: 'aristotle', name: '아리스토텔레스', subtitle: 'Eudaimonia · Habit', color: C.teal, motto: '"우리는 반복적으로 행하는 것의 결과다"' },
-  { id: 'aurelius', name: '마르쿠스 아우렐리우스', subtitle: 'Stoic Discipline', color: C.slate, motto: '"통제할 수 있는 것에 집중하라"' },
-  { id: 'frankl', name: '빅터 프랭클', subtitle: 'Logotherapy · Meaning', color: C.plum, motto: '"의미 없는 삶은 견딜 수 없는 고통이다"' },
-  { id: 'sartre', name: '장 폴 사르트르', subtitle: 'Existentialism · Choice', color: C.rust, motto: '"인간은 자유롭도록 저주받았다"' },
-];
-
-function analyzePhilosophically(stats) {
-  const { activeDays, exerciseDays, sleepAvg, axisCount, moodAvg, totalDays, journalDays } = stats;
-  const consistency = activeDays / Math.max(totalDays, 1);
-  const exerciseRate = exerciseDays / Math.max(totalDays, 1);
-  const reflectionRate = journalDays / Math.max(totalDays, 1);
-  const sleepHealth = sleepAvg >= 7.5;
-  const balanceScore = axisCount;
-
-  let socrates = reflectionRate > 0.6 ?
-    `자기 검토의 빈도가 높습니다. ${journalDays}일 동안 일기를 작성하셨어요. 이는 'γνῶθι σεαυτόν'(너 자신을 알라)을 실천하는 모습입니다. 다만 *질문*에 집중해보세요 — 답을 적기보다 좋은 질문을 적는 날이 더 깊은 통찰을 줍니다.` :
-    reflectionRate > 0.3 ?
-    `검토의 습관이 자라고 있어요. 매일 일기를 쓸 필요는 없지만, *"오늘 내가 한 선택은 정말 내가 원한 것이었나?"* 같은 질문을 일주일에 2~3번 해보면 자기 인식이 깊어집니다.` :
-    `소크라테스가 말한 *검토되지 않은 삶*에 가까운 패턴입니다. 행동은 있지만 그 행동에 대한 *질문*이 적어요. 한 줄 메모라도 좋으니 "왜 그랬을까?"를 적어보세요. 비난이 아닌 호기심으로.`;
-
-  let aristotle = consistency > 0.7 ?
-    `훌륭한 습관이 형성되고 있습니다. 아리스토텔레스는 덕(arete)이 단발성 영웅적 행동이 아니라 *반복되는 작은 행위*에서 나온다 했어요. ${Math.round(consistency*100)}%의 활동률은 그 자체로 이미 성취입니다.` :
-    consistency > 0.4 ?
-    `습관 형성의 중간 단계예요. 아리스토텔레스의 *hexis*(체득) 개념이 중요한 시기 — 의지가 아닌 *자동화*로 가는 다리. 너무 큰 목표보다 *오늘 하나*에 집중하세요.` :
-    `아직 습관이 자리잡지 않은 단계입니다. 의지력에 의존하면 지칩니다. 아리스토텔레스의 조언: *환경을 바꿔라*. 책을 책상이 아닌 침대 옆에 두기, 운동복을 미리 입기 같은 작은 트리거가 의지보다 강합니다.`;
-
-  let aurelius = (exerciseRate > 0.6 && sleepHealth) ?
-    `몸과 정신 모두 통제하고 있습니다. 아우렐리우스의 *명상록*에서 "신체는 정신의 도구"라 했죠. 운동 ${exerciseDays}일, 평균 수면 ${sleepAvg.toFixed(1)}시간 — 이는 통제 가능한 영역에 충실한 모습. 통제 *불가능한* 것에 대한 걱정도 같이 줄여보세요.` :
-    (exerciseRate > 0.3 || sleepHealth) ?
-    `통제 가능한 것과 불가능한 것의 구분이 필요한 시기예요. 운동이나 수면 중 하나는 잘 지키고 있습니다. 아우렐리우스의 핵심 — *"오늘 아침 일어나서 살아있다는 것 자체가 특권"*. 작은 일관성을 자축하세요.` :
-    `스토아 철학자가 강조한 *프로하이레시스*(선택 능력)가 약해진 상태일 수 있어요. 외부 상황이 아니라 *반응*을 통제하는 게 핵심. 오늘 아침에 한 가지 작은 의식적 선택 (예: 5분 산책)부터 회복해보세요.`;
-
-  let frankl = balanceScore > 8 ?
-    `다양한 영역에 의미를 분산시키고 있습니다. 프랭클은 *의미는 외부에서 오지 않고 자신이 부여한다*고 했어요. ${balanceScore}개의 axis 활동은 의미 있는 다층 구조. 다만 *왜* 이걸 하고 있는지를 가끔 다시 묻는 게 중요합니다.` :
-    balanceScore > 3 ?
-    `의미 부여가 진행 중인 단계입니다. 프랭클의 로고테라피 핵심: *상황이 통제 안 될 때 태도를 통제할 수 있다*. 작업 자체보다 그 작업의 *의미*를 한 줄로 적어두면 동력이 유지됩니다.` :
-    `활동량이 줄어든 시기일 수 있어요. 프랭클이 강제수용소에서 발견한 것 — *의미를 가진 사람은 어떤 상황도 견딘다*. 큰 목표가 아니라, *내일 한 가지 약속*을 정하세요. 그게 의미의 씨앗이 됩니다.`;
-
-  let sartre = (moodAvg && moodAvg < 2.5) ?
-    `사르트르의 *bad faith*(자기기만)를 경계해야 할 시기입니다. "어쩔 수 없어"라고 말하는 순간 자유를 포기하는 거예요. 지금 기분이 안 좋아도, *다음 1시간을 어떻게 쓸지*는 100% 본인 선택입니다. 그 선택이 곧 정체성.` :
-    consistency > 0.5 ?
-    `사르트르의 *engagement*(참여) 상태입니다. 본인이 선택한 가치(대학원·운동·연구)에 행동으로 답하고 있어요. 다만 사르트르의 경고 — *타인의 시선이 아닌 본인의 자유*에서 선택하고 있는지 가끔 점검하세요.` :
-    `사르트르가 말한 *자유의 무게*를 느끼는 단계일 수 있습니다. 선택지가 너무 많아 마비되는 것도 자유의 부작용. 해법은 단순 — *지금 이 순간 한 가지*만 선택하기. 완벽한 선택보다 *어떤 선택*이 자유의 실천입니다.`;
-
-  return {
-    socrates: { philosopher: PHILOSOPHERS[0], text: socrates },
-    aristotle: { philosopher: PHILOSOPHERS[1], text: aristotle },
-    aurelius: { philosopher: PHILOSOPHERS[2], text: aurelius },
-    frankl: { philosopher: PHILOSOPHERS[3], text: frankl },
-    sartre: { philosopher: PHILOSOPHERS[4], text: sartre },
-  };
-}
-
-function generateInsights(stats) {
-  const insights = [];
-  const { activeDays, exerciseDays, sleepAvg, totalDays, journalDays, axisBreakdown } = stats;
-  if (totalDays >= 3) {
-    if (activeDays / totalDays > 0.7) insights.push({ type:'strength', icon:'check', text:`높은 일관성 — ${totalDays}일 중 ${activeDays}일 활동. 이미 형성된 리듬이 자산입니다.` });
-    if (exerciseDays / totalDays > 0.6) insights.push({ type:'strength', icon:'check', text:`운동 빈도 양호 — 신체와 정신이 함께 작동하는 상태.` });
-    if (sleepAvg && sleepAvg >= 7.5) insights.push({ type:'strength', icon:'check', text:`수면 8시간 보장이 거의 지켜지고 있어요 — 가장 어려운 비협상 영역을 해내는 중.` });
-    if (sleepAvg && sleepAvg < 7) insights.push({ type:'caution', icon:'alert', text:`수면 평균 ${sleepAvg.toFixed(1)}h — 7시간 미만은 cognitive 성과 직결 손실. 다른 모든 노력이 약화됩니다.` });
-    if (exerciseDays / totalDays < 0.3 && totalDays >= 5) insights.push({ type:'caution', icon:'alert', text:`운동 빈도 낮음. PT 외에도 가벼운 산책이라도 추가해보세요.` });
-    if (axisBreakdown && Object.keys(axisBreakdown).length === 1) insights.push({ type:'suggest', icon:'sparkles', text:`한 axis에만 집중 중. 다양성이 회복력을 만듭니다 — 다음 주는 다른 axis 1개를 시도.` });
-    if (journalDays / totalDays < 0.3 && totalDays >= 7) insights.push({ type:'suggest', icon:'pen', text:`기록(메모/일기)이 적은 편. 한 줄이라도 자기 검토는 장기적으로 가장 큰 ROI.` });
-  }
-  if (insights.length === 0) insights.push({ type:'info', icon:'sparkles', text:`데이터가 더 쌓이면 깊은 인사이트가 나옵니다. 일단 1주일 채워보세요.` });
-  return insights;
-}
-
-function generateGrowthSuggestions(stats) {
-  const out = [];
-  const { exerciseDays, sleepAvg, totalDays, journalDays, axisBreakdown } = stats;
-  if (totalDays < 7) out.push({ title: '첫 주 완주', body: '아직 데이터가 적어요. 7일 채우면 첫 패턴이 보입니다. 완벽 X, 일단 자리에 앉기.', priority: 1 });
-  if (sleepAvg && sleepAvg < 7.5) out.push({ title: '수면 30분 앞당기기', body: '23:30 취침을 23:00로. 다른 어떤 변화보다 효과 큽니다. 23:00에 알람 1개 추가해보세요.', priority: 1 });
-  if (exerciseDays / Math.max(totalDays,1) < 0.4) out.push({ title: '운동 마찰 줄이기', body: '운동복 미리 꺼내두기, 운동가방 문 앞에 두기. 의지보다 환경이 강합니다.', priority: 2 });
-  if (axisBreakdown && Object.values(axisBreakdown).length < 2 && totalDays >= 7) out.push({ title: '주제 다양화', body: '한 axis만 계속하면 burnout. 다음 주 1번이라도 다른 axis 시도 — 회복력 = 다양성.', priority: 2 });
-  if (journalDays / Math.max(totalDays,1) < 0.3 && totalDays >= 5) out.push({ title: '주 2회 일기', body: '"오늘 가장 좋았던 1순간 + 가장 어려웠던 1순간" 만 적기. 5분이면 충분.', priority: 2 });
-  if (out.length === 0) out.push({ title: '현재 페이스 유지', body: '큰 변화 필요 없음. 의도적으로 동일 페이스 유지하면서 4주 후 다시 검토.', priority: 3 });
-  return out.sort((a,b) => a.priority - b.priority);
-}
-
-function computeStats(days, range) {
-  const allDates = Object.keys(days).sort();
-  let targetDates = allDates;
-  if (range === 'week') {
-    const end = new Date(); end.setHours(0,0,0,0);
-    const start = new Date(end); start.setDate(end.getDate() - 6);
-    targetDates = allDates.filter(d => new Date(d) >= start && new Date(d) <= end);
-  } else if (range === 'month') {
-    const end = new Date(); end.setHours(0,0,0,0);
-    const start = new Date(end); start.setDate(end.getDate() - 29);
-    targetDates = allDates.filter(d => new Date(d) >= start && new Date(d) <= end);
-  }
-  const totalDays = range === 'week' ? 7 : (range === 'month' ? 30 : Math.max(targetDates.length, 1));
-  const targetData = targetDates.map(d => days[d]).filter(Boolean);
-  const activeDays = targetData.filter(d => d.axes && d.axes.length > 0).length;
-  const exerciseDays = targetData.filter(d => d.exerciseType).length;
-  const journalDays = targetData.filter(d => (d.note && d.note.trim()) || (d.journal && d.journal.trim())).length;
-  const sleeps = targetData.filter(d => d.sleepHrs).map(d => d.sleepHrs);
-  const sleepAvg = sleeps.length ? sleeps.reduce((a,b) => a+b, 0) / sleeps.length : null;
-  const moods = targetData.filter(d => d.mood).map(d => d.mood);
-  const moodAvg = moods.length ? moods.reduce((a,b) => a+b, 0) / moods.length : null;
-  let axisCount = 0;
-  const axisBreakdown = {};
-  targetData.forEach(d => {
-    if (d.axes) {
-      axisCount += d.axes.length;
-      d.axes.forEach(a => { axisBreakdown[a] = (axisBreakdown[a] || 0) + 1; });
-    }
-  });
-  return { totalDays, activeDays, exerciseDays, journalDays, sleepAvg, moodAvg, axisCount, axisBreakdown };
-}
-
+// ===== MODAL =====
 function Modal({ open, onClose, title, children }) {
   if (!open) return null;
   return (
     <div className="modal-bg" onClick={onClose}>
       <div className="modal-body" onClick={e => e.stopPropagation()}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 16px', borderBottom:`1px solid ${C.line}`, position:'sticky', top:0, background:C.bg2, zIndex:1}}>
-          <h3 style={{fontSize:14, fontWeight:700, color:C.ink, fontFamily:'ui-monospace, monospace', letterSpacing:'0.15em', textTransform:'uppercase'}}>{title}</h3>
-          <button onClick={onClose} style={{background:'transparent', border:'none', color:C.inkDim, cursor:'pointer', padding:6}}>
-            <Ic d={i.x} size={18} />
+        <div style={{
+          display:'flex', justifyContent:'space-between', alignItems:'center',
+          padding:'16px 20px', borderBottom:`1px solid ${C.line}`,
+          position:'sticky', top:0, background: C.bg2, zIndex:1,
+          borderRadius: '16px 16px 0 0',
+        }}>
+          <span style={{ fontSize:13, fontWeight:700, color:C.ink, letterSpacing:'0.05em' }}>{title}</span>
+          <button onClick={onClose} style={{
+            background:'rgba(255,255,255,0.05)', border:'none', color:C.inkMid,
+            cursor:'pointer', padding:7, borderRadius:8,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            transition:'background 0.15s',
+          }}>
+            <Ic d={i.x} size={16} />
           </button>
         </div>
-        <div style={{padding:'16px'}}>{children}</div>
+        <div style={{padding:'20px'}}>{children}</div>
       </div>
     </div>
   );
 }
 
+// ===== STREAK BANNER =====
+function StreakBanner({ streaks }) {
+  const items = [
+    { label: '활동', value: streaks.activity, icon: 'sparkles', color: C.sage, dim: C.sageDim },
+    { label: '운동', value: streaks.exercise, icon: 'dumbbell', color: C.teal, dim: C.tealDim },
+    { label: '일기', value: streaks.journal, icon: 'pen', color: C.gold, dim: C.goldDim },
+  ];
+  return (
+    <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8, marginBottom:16}}>
+      {items.map(it => (
+        <div key={it.label} style={{
+          background: it.value > 0 ? it.dim : 'rgba(255,255,255,0.02)',
+          border: `1px solid ${it.value > 0 ? it.color + '40' : C.line}`,
+          borderRadius:14, padding:'12px 8px', textAlign:'center',
+          position:'relative', overflow:'hidden',
+          transition:'all 0.2s',
+        }}>
+          {it.value >= 7 && (
+            <div className="pulse fire-badge" style={{
+              position:'absolute', top:6, right:6, padding:'2px 5px',
+              fontSize:8, fontWeight:800, color:'#fff',
+              letterSpacing:'0.05em',
+            }}>🔥</div>
+          )}
+          <div style={{display:'flex', justifyContent:'center', alignItems:'center', gap:4, marginBottom:4}}>
+            <Ic d={i[it.icon]} size={11} color={it.value > 0 ? it.color : C.inkDim} />
+            <span style={{
+              fontSize:9, fontWeight:700, color: it.value > 0 ? it.color : C.inkDim,
+              letterSpacing:'0.15em', textTransform:'uppercase',
+            }}>{it.label}</span>
+          </div>
+          <div style={{
+            fontSize:22, fontWeight:800, color: it.value > 0 ? it.color : C.inkDim,
+            lineHeight:1, fontVariantNumeric:'tabular-nums',
+          }}>
+            {it.value}<span style={{fontSize:11, color:C.inkDim, fontWeight:400, marginLeft:2}}>일</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ===== DAILY SELF QUESTION =====
+function DailySelfQuestion({ todayData, updateToday }) {
+  const selfQ = todayData.selfQ || {};
+  const setAnswer = (qid, val) => updateToday({ selfQ: { ...selfQ, [qid]: val } });
+  return (
+    <div style={{
+      background: C.bg2, border:`1px solid rgba(251,191,36,0.2)`,
+      borderRadius:16, padding:'20px', marginBottom:14,
+      boxShadow:`0 0 30px rgba(251,191,36,0.03)`,
+    }}>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
+        <div style={{display:'flex', alignItems:'center', gap:7}}>
+          <Ic d={i.target} size={14} color={C.gold} />
+          <span className="section-tag" style={{color:C.gold}}>하루의 갈무리</span>
+        </div>
+        <span style={{fontSize:11, color:C.inkDim, fontStyle:'italic'}}>"연극을 마친 배우처럼"</span>
+      </div>
+      <p style={{fontSize:12, color:C.inkDim, lineHeight:1.6, marginBottom:16, fontStyle:'italic'}}>
+        매일 밤, 세 가지 질문에 답하며 하루를 마무리하세요.
+      </p>
+      {SELF_QUESTIONS.map((sq, idx) => {
+        const ans = selfQ[sq.id] ?? null;
+        return (
+          <div key={sq.id} style={{marginBottom: idx < SELF_QUESTIONS.length-1 ? 16 : 0}}>
+            <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:7}}>
+              <span style={{
+                fontSize:9.5, fontWeight:700, color:sq.color,
+                padding:'2px 9px', border:`1px solid ${sq.color}40`,
+                borderRadius:20, background:`${sq.color}12`,
+                letterSpacing:'0.1em',
+              }}>{sq.dim}</span>
+            </div>
+            <p style={{fontSize:12.5, color:C.ink, lineHeight:1.6, marginBottom:8, fontStyle:'italic'}}>
+              {sq.q}
+            </p>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6}}>
+              {[
+                { v: 'yes', l: '응', col: C.sage },
+                { v: 'partial', l: '반쯤', col: C.gold },
+                { v: 'no', l: '아니', col: C.rust },
+              ].map(opt => {
+                const active = ans === opt.v;
+                return (
+                  <button key={opt.v} onClick={() => setAnswer(sq.id, active ? null : opt.v)}
+                    className="btn-press" style={{
+                      padding:'8px 6px', borderRadius:10,
+                      background: active ? `${opt.col}18` : 'rgba(255,255,255,0.02)',
+                      border: `1px solid ${active ? opt.col + '60' : C.line}`,
+                      color: active ? opt.col : C.inkDim,
+                      fontSize:11, fontWeight: active ? 700 : 500,
+                      boxShadow: active ? `0 0 16px ${opt.col}20` : 'none',
+                  }}>{opt.l}</button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      <div style={{
+        padding:'12px 14px', borderRadius:10,
+        background:'rgba(52,211,153,0.05)',
+        borderLeft:`2px solid ${C.sage}60`,
+        fontSize:11, color:C.inkDim, lineHeight:1.5, marginTop:14,
+      }}>
+        <span style={{color:C.sage, fontWeight:700, fontSize:9.5, letterSpacing:'0.15em', textTransform:'uppercase', display:'block', marginBottom:4}}>회복 노트</span>
+        "아니"가 많은 날도 데이터예요. <b style={{color:C.ink}}>지치지 않는 정교한 일상이 가장 날카로운 무기.</b>
+      </div>
+    </div>
+  );
+}
+
+// ===== CODEX CARD =====
+function CodexCard({ entry, openId, setOpenId }) {
+  const isOpen = openId === entry.id;
+  return (
+    <div style={{
+      background: C.bg2, border:`1px solid ${C.line}`,
+      borderRadius:14, marginBottom:8, overflow:'hidden',
+      transition:'border-color 0.2s',
+      ...(isOpen && { borderColor: `${entry.color}40` }),
+    }}>
+      <button className="accordion-header" onClick={() => setOpenId(isOpen ? null : entry.id)} style={{
+        borderLeft:`3px solid ${entry.color}`,
+        borderRadius:'12px 0 0 12px',
+      }}>
+        <div style={{display:'flex', alignItems:'center', gap:12, flex:1, minWidth:0}}>
+          <div style={{
+            width:36, height:36, borderRadius:10,
+            background:`${entry.color}15`,
+            border:`1px solid ${entry.color}30`,
+            display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+          }}>
+            <Ic d={i[entry.icon]} size={16} color={entry.color} />
+          </div>
+          <div>
+            <div style={{fontSize:13.5, fontWeight:700, color:C.ink, marginBottom:2}}>{entry.title}</div>
+            <div style={{fontSize:11, color:entry.color, fontStyle:'italic'}}>{entry.subtitle}</div>
+          </div>
+        </div>
+        <div style={{
+          transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+          transition:'transform 0.2s',
+        }}>
+          <Ic d={i.chevronRight} size={14} color={C.inkDim} />
+        </div>
+      </button>
+      {isOpen && (
+        <div style={{padding:'4px 16px 18px 16px', borderTop:`1px solid ${C.line}`}}>
+          <p style={{fontSize:12.5, color:C.inkDim, lineHeight:1.65, marginTop:14, marginBottom:14, fontStyle:'italic'}}>{entry.intro}</p>
+          <div style={{
+            padding:'12px 14px', borderRadius:10,
+            background:`${entry.color}10`, borderLeft:`2px solid ${entry.color}`,
+            marginBottom:14,
+          }}>
+            <div className="section-tag" style={{color:entry.color, marginBottom:6}}>정신 무장</div>
+            <p style={{fontSize:12.5, color:C.ink, lineHeight:1.6, fontStyle:'italic'}}>{entry.motto}</p>
+          </div>
+          <div className="section-tag" style={{color:C.inkDim, marginBottom:10}}>실천 조언</div>
+          <ul style={{listStyle:'none', padding:0}}>
+            {entry.practices.map((p, idx) => (
+              <li key={idx} style={{
+                padding:'9px 0 9px 24px', position:'relative',
+                fontSize:12.5, color:C.ink, lineHeight:1.6,
+                borderBottom: idx < entry.practices.length-1 ? `1px dashed rgba(255,255,255,0.05)` : 'none',
+              }}>
+                <span style={{
+                  position:'absolute', left:0, top:10,
+                  color:entry.color, fontWeight:800, fontSize:10,
+                  fontVariantNumeric:'tabular-nums',
+                }}>0{idx+1}</span>
+                {p}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===== MONTHLY HEATMAP =====
+function MonthlyHeatmap({ days, axes }) {
+  const [offset, setOffset] = useState(0);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const d0 = new Date(); d0.setMonth(d0.getMonth() + offset); d0.setDate(1); d0.setHours(0,0,0,0);
+  const year = d0.getFullYear(), month = d0.getMonth();
+  const monthLabel = `${year}.${String(month+1).padStart(2,'0')}`;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const firstDayOfWeek = new Date(year, month, 1).getDay();
+  const offset2 = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+  const cells = [];
+  for (let p = 0; p < offset2; p++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+  const todayKey = todayStr();
+
+  const getDayInfo = (day) => {
+    if (!day) return null;
+    const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const data = days[ds];
+    if (!data) return { intensity: 0, key: ds, isToday: ds === todayKey };
+    let score = 0;
+    if (data.axes?.length > 0) score += data.axes.length;
+    if (data.exerciseType) score += 1;
+    if (data.journal?.trim()) score += 1;
+    if (data.note?.trim()) score += 0.5;
+    return { intensity: Math.min(score, 5), key: ds, isToday: ds === todayKey, data };
+  };
+
+  const getColor = (intensity) => {
+    if (!intensity || intensity === 0) return 'rgba(255,255,255,0.03)';
+    const opacity = Math.min(0.15 + (intensity / 5) * 0.75, 0.9);
+    return `rgba(52,211,153,${opacity})`;
+  };
+
+  const selected = selectedDate ? days[selectedDate] : null;
+
+  return (
+    <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:18, marginBottom:14}}>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
+        <button onClick={() => setOffset(offset-1)} style={{
+          background:'rgba(255,255,255,0.04)', border:`1px solid ${C.line}`, color:C.inkMid,
+          padding:'6px 10px', borderRadius:8, cursor:'pointer', display:'flex', alignItems:'center',
+        }}>
+          <Ic d={i.chevronLeft} size={12} />
+        </button>
+        <span style={{fontSize:16, fontWeight:700, color:C.ink, letterSpacing:'0.05em'}}>{monthLabel}</span>
+        <button onClick={() => setOffset(Math.min(0, offset+1))} disabled={offset===0} style={{
+          background:'rgba(255,255,255,0.04)', border:`1px solid ${C.line}`,
+          color: offset===0 ? C.line : C.inkMid, padding:'6px 10px', borderRadius:8,
+          cursor: offset===0 ? 'not-allowed' : 'pointer', opacity: offset===0 ? 0.3 : 1, display:'flex', alignItems:'center',
+        }}>
+          <Ic d={i.chevronRight} size={12} />
+        </button>
+      </div>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3, marginBottom:6}}>
+        {['월','화','수','목','금','토','일'].map((d, idx) => (
+          <div key={d} style={{
+            textAlign:'center', fontSize:9, fontWeight:600,
+            color: idx >= 5 ? C.gold+'80' : C.inkDim,
+            letterSpacing:'0.05em', padding:'3px 0',
+          }}>{d}</div>
+        ))}
+      </div>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3, marginBottom:12}}>
+        {cells.map((day, idx) => {
+          if (!day) return <div key={idx} />;
+          const info = getDayInfo(day);
+          const color = getColor(info?.intensity);
+          const isSelected = selectedDate === info?.key;
+          return (
+            <button key={idx} className="heatmap-cell" onClick={() => setSelectedDate(isSelected ? null : info.key)}
+              style={{
+                aspectRatio:'1', background:color,
+                border:`1px solid ${info?.isToday ? C.sage+'80' : (isSelected ? C.gold+'80' : 'rgba(255,255,255,0.06)')}`,
+                cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+                padding:0, fontSize:10, fontWeight: info?.isToday ? 800 : 500,
+                color: info?.intensity > 2.5 ? '#0a0c14' : (info?.isToday ? C.sage : C.inkMid),
+                boxShadow: info?.isToday ? `0 0 8px ${C.sage}40` : 'none',
+              }}>
+              {day}
+              {info?.data?.exerciseType === 'pt' && <div style={{position:'absolute', top:1, right:1, width:3, height:3, background:C.gold, borderRadius:'50%'}} />}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:6, fontSize:9, color:C.inkDim, marginBottom:selected ? 12 : 0}}>
+        <span>적음</span>
+        {[0,1,2,3,4,5].map(v => (
+          <div key={v} style={{width:12, height:12, background:getColor(v), borderRadius:3, border:`1px solid rgba(255,255,255,0.05)`}} />
+        ))}
+        <span>많음</span>
+      </div>
+      {selected && (
+        <div style={{
+          padding:'12px 14px', borderRadius:10,
+          background:'rgba(255,255,255,0.02)', border:`1px dashed ${C.gold}50`,
+          fontSize:12, color:C.ink, lineHeight:1.6,
+        }}>
+          <div className="section-tag" style={{color:C.gold, marginBottom:6}}>{fmt(selectedDate)}</div>
+          {selected.axes?.length > 0 && (
+            <div style={{display:'flex', gap:5, flexWrap:'wrap', marginBottom:6}}>
+              {selected.axes.map(aid => {
+                const ax = axes.find(a => a.id === aid);
+                if (!ax) return null;
+                return <span key={aid} style={{fontSize:10, padding:'2px 8px', borderRadius:20, background:`${ax.color}18`, border:`1px solid ${ax.color}40`, color:ax.color}}>{ax.label}</span>;
+              })}
+            </div>
+          )}
+          {selected.exerciseType && <div style={{fontSize:11.5, color:C.teal}}>운동: {EXERCISE_TYPES.find(t => t.id === selected.exerciseType)?.label}</div>}
+          {selected.mood && <div style={{fontSize:11.5}}>{MOODS.find(m => m.v === selected.mood)?.emoji} {MOODS.find(m => m.v === selected.mood)?.label}</div>}
+          {selected.note && <div style={{fontSize:11.5, color:C.inkDim, fontStyle:'italic', marginTop:4}}>"{selected.note}"</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===== SUNDAY REVIEW =====
+function SundayReview({ data, saveData, isSunday, forceShow }) {
+  const weekKey = getWeekKey();
+  const review = data.weeklyReviews?.[weekKey] || { best: '', hardest: '', nextWeek: '' };
+  const [open, setOpen] = useState(isSunday && (!review.best && !review.hardest && !review.nextWeek));
+  const update = (field, value) => saveData({ ...data, weeklyReviews: { ...data.weeklyReviews, [weekKey]: { ...review, [field]: value } } });
+  if (!isSunday && !forceShow && !open) return null;
+  return (
+    <div style={{
+      background:C.bg2, border:`2px solid ${C.gold}50`,
+      borderRadius:16, padding:'18px 20px', marginBottom:14,
+      boxShadow:`0 0 40px ${C.gold}08`,
+    }}>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: open ? 16 : 0, gap:10}}>
+        <div>
+          <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:4}}>
+            <Ic d={i.calendar} size={13} color={C.gold} />
+            <span className="section-tag" style={{color:C.gold}}>일요일 회고</span>
+          </div>
+          <div style={{fontSize:14, color:C.ink, fontWeight:700}}>
+            {isSunday ? '카페에서 5분만' : `Week ${weekKey}`}
+          </div>
+        </div>
+        <button onClick={() => setOpen(!open)} className="btn-press" style={{
+          background:'rgba(251,191,36,0.1)', border:`1px solid ${C.gold}40`,
+          color:C.gold, padding:'5px 12px', borderRadius:8,
+          fontSize:11, fontWeight:600, cursor:'pointer',
+        }}>{open ? '접기' : '펼치기'}</button>
+      </div>
+      {open && (
+        <div>
+          {[
+            { field:'best', label:'가장 좋았던 1순간', placeholder:'이번 주 가장 좋았던 순간 한 가지...', color:C.sage },
+            { field:'hardest', label:'가장 어려웠던 1순간', placeholder:'가장 힘들었던 순간이나 그날...', color:C.rust },
+            { field:'nextWeek', label:'다음 주 한 가지 다르게 할 것', placeholder:'딱 한 가지만. 작아도 OK.', color:C.gold },
+          ].map(({ field, label, placeholder, color }) => (
+            <div key={field} style={{marginBottom:12}}>
+              <label style={{fontSize:10, fontWeight:600, color:color, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, display:'block'}}>{label}</label>
+              <textarea value={review[field]} onChange={e => update(field, e.target.value)} placeholder={placeholder} rows={2} className="field"
+                style={{borderColor:`${color}20`}} />
+            </div>
+          ))}
+          <p style={{fontSize:11, color:C.inkDim, fontStyle:'italic', marginTop:4}}>"5분이면 충분합니다. 자동 저장돼요."</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===== PAST REVIEWS =====
+function PastReviews({ reviews }) {
+  const sortedKeys = Object.keys(reviews).sort().reverse();
+  if (sortedKeys.length === 0) return null;
+  return (
+    <div style={{marginBottom:14}}>
+      <div className="section-tag" style={{color:C.sage, marginBottom:10}}>지난 회고</div>
+      {sortedKeys.slice(0, 4).map(key => {
+        const r = reviews[key];
+        if (!r.best && !r.hardest && !r.nextWeek) return null;
+        return (
+          <div key={key} style={{
+            background:C.bg2, border:`1px solid ${C.line}`,
+            borderLeft:`3px solid ${C.gold}`, borderRadius:'0 10px 10px 0',
+            padding:'12px 16px', marginBottom:6,
+          }}>
+            <div className="section-tag" style={{color:C.gold, marginBottom:8}}>{key}</div>
+            {r.best && <div style={{fontSize:12, color:C.ink, marginBottom:4, paddingLeft:12, borderLeft:`2px solid ${C.sage}40`, lineHeight:1.5}}><span style={{color:C.sage, fontSize:10, marginRight:6}}>✓</span>{r.best}</div>}
+            {r.hardest && <div style={{fontSize:12, color:C.ink, marginBottom:4, paddingLeft:12, borderLeft:`2px solid ${C.rust}40`, lineHeight:1.5}}><span style={{color:C.rust, fontSize:10, marginRight:6}}>✗</span>{r.hardest}</div>}
+            {r.nextWeek && <div style={{fontSize:12, color:C.ink, paddingLeft:12, borderLeft:`2px solid ${C.gold}40`, lineHeight:1.5}}><span style={{color:C.gold, fontSize:10, marginRight:6}}>→</span>{r.nextWeek}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ===== TODAY TAB =====
+function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, ptDone, updateToday, toggleAxis, setExerciseType, saveData, setActiveTab, isSunday }) {
+  const [codexOpen, setCodexOpen] = useState(null);
+  return (
+    <div>
+      {/* Status banner */}
+      <div style={{
+        padding:'10px 14px', borderRadius:10,
+        background:'rgba(52,211,153,0.06)', border:`1px solid ${C.sage}30`,
+        fontSize:12.5, color:C.inkMid, lineHeight:1.5, marginBottom:14,
+        display:'flex', alignItems:'center', gap:8,
+      }}>
+        <Ic d={i.sparkles} size={13} color={C.sage} />
+        {dToStart > 0
+          ? <span>D-{dToStart} · 5/4(월) 시작까지. <b style={{color:C.ink}}>이번주는 평소대로 OK</b></span>
+          : dToStart === 0
+          ? <b style={{color:C.sage}}>오늘이 시작일! 21:30 책상에 앉기.</b>
+          : <span>D+{Math.abs(dToStart)+1} · 시작 {Math.abs(dToStart)+1}일째</span>}
+      </div>
+
+      {isSunday && <SundayReview data={data} saveData={saveData} isSunday={isSunday} />}
+
+      {/* Today card */}
+      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'20px', marginBottom:14}}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18}}>
+          <span className="section-tag" style={{color:C.sage}}>오늘의 기록</span>
+          <span style={{fontSize:11, color:C.inkDim, fontStyle:'italic'}}>Today's Log</span>
+        </div>
+
+        {/* Mood */}
+        <div style={{marginBottom:18}}>
+          <div className="section-tag" style={{color:C.inkDim, marginBottom:8}}>오늘 기분</div>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:5}}>
+            {MOODS.map(m => {
+              const active = todayData.mood === m.v;
+              return (
+                <button key={m.v} onClick={() => updateToday({ mood: active ? null : m.v })}
+                  className={`mood-btn ${active ? 'active' : ''}`} style={{
+                    background: active ? `${m.color}18` : 'rgba(255,255,255,0.02)',
+                    border:`1px solid ${active ? m.color+'60' : C.line}`,
+                    padding:'9px 4px', cursor:'pointer',
+                    display:'flex', flexDirection:'column', alignItems:'center', gap:3,
+                    boxShadow: active ? `0 0 20px ${m.color}20` : 'none',
+                  }}>
+                  <span style={{fontSize:20}}>{m.emoji}</span>
+                  <span style={{fontSize:9.5, color:active ? m.color : C.inkDim, fontWeight: active ? 700 : 400}}>{m.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Study axes */}
+        <div style={{marginBottom:18}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
+            <div className="section-tag" style={{color:C.inkDim}}>학습 영역</div>
+            <button onClick={() => setActiveTab('manage')} style={{
+              background:'transparent', border:'none', color:C.teal,
+              fontSize:10.5, cursor:'pointer', fontWeight:600,
+              display:'flex', alignItems:'center', gap:3,
+            }}>편집 <Ic d={i.chevronRight} size={10} color={C.teal} /></button>
+          </div>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:7}}>
+            {data.axes.map(ax => {
+              const active = todayData.axes.includes(ax.id);
+              return (
+                <button key={ax.id} onClick={() => toggleAxis(ax.id)} className="btn-press" style={{
+                  background: active ? `${ax.color}14` : 'rgba(255,255,255,0.02)',
+                  border:`1px solid ${active ? ax.color+'50' : C.line}`,
+                  borderRadius:12, padding:'11px 13px', textAlign:'left', cursor:'pointer',
+                  boxShadow: active ? `0 0 20px ${ax.color}15` : 'none',
+                  transition:'all 0.2s',
+                }}>
+                  <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:3}}>
+                    <div style={{
+                      width:26, height:26, borderRadius:7,
+                      background: active ? `${ax.color}20` : 'rgba(255,255,255,0.04)',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                    }}>
+                      <Ic d={i[ax.icon]} size={12} color={active ? ax.color : C.inkDim} />
+                    </div>
+                    <span style={{fontSize:11.5, fontWeight:700, color:active ? ax.color : C.inkDim, letterSpacing:'0.06em'}}>{ax.label}</span>
+                    {active && <span style={{marginLeft:'auto', color:ax.color, fontSize:14}}>✓</span>}
+                  </div>
+                  <div style={{fontSize:11, color:active ? C.inkMid : C.inkDim, lineHeight:1.3, paddingLeft:33}}>{ax.sub}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Exercise */}
+        <div style={{marginBottom:18}}>
+          <div className="section-tag" style={{color:C.inkDim, marginBottom:8}}>운동 종류</div>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6}}>
+            {EXERCISE_TYPES.map(et => {
+              const active = todayData.exerciseType === et.id;
+              const isPt = et.id === 'pt';
+              const disabled = isPt && ptDone && !active;
+              return (
+                <button key={et.id} onClick={() => !disabled && setExerciseType(et.id)} disabled={disabled}
+                  className={disabled ? '' : 'btn-press'} style={{
+                    background: active ? `${et.color}18` : 'rgba(255,255,255,0.02)',
+                    border:`1px solid ${active ? et.color+'60' : C.line}`,
+                    borderRadius:12, padding:'10px 8px', cursor:disabled ? 'not-allowed' : 'pointer',
+                    display:'flex', flexDirection:'column', alignItems:'center', gap:5, opacity:disabled ? 0.4 : 1,
+                    boxShadow: active ? `0 0 20px ${et.color}20` : 'none',
+                    transition:'all 0.2s',
+                  }}>
+                  <Ic d={i[et.icon]} size={16} color={active ? et.color : C.inkDim} />
+                  <span style={{fontSize:11.5, color:active ? et.color : C.inkDim, fontWeight:active ? 700 : 400}}>
+                    {et.label}{isPt && ` (${ptRemaining})`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Cafe toggle */}
+        <button onClick={() => updateToday({ cafe: !todayData.cafe })} className="btn-press" style={{
+          width:'100%', borderRadius:12,
+          background: todayData.cafe ? `${C.rust}14` : 'rgba(255,255,255,0.02)',
+          border:`1px solid ${todayData.cafe ? C.rust+'50' : C.line}`,
+          padding:'10px 14px', cursor:'pointer',
+          display:'flex', alignItems:'center', gap:8, justifyContent:'center', marginBottom:14,
+          boxShadow: todayData.cafe ? `0 0 20px ${C.rust}15` : 'none',
+          transition:'all 0.2s',
+        }}>
+          <Ic d={i.coffee} size={14} color={todayData.cafe ? C.rust : C.inkDim} />
+          <span style={{fontSize:12.5, color:todayData.cafe ? C.rust : C.inkDim, fontWeight:todayData.cafe ? 700 : 400}}>카페 {todayData.cafe ? '✓' : ''}</span>
+        </button>
+
+        {/* Sleep */}
+        <div style={{
+          display:'flex', alignItems:'center', justifyContent:'space-between',
+          marginBottom:14, padding:'10px 14px', borderRadius:10,
+          background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`,
+        }}>
+          <div style={{display:'flex', alignItems:'center', gap:7}}>
+            <Ic d={i.moon} size={13} color={C.inkDim} />
+            <span style={{fontSize:12, color:C.inkDim}}>어젯밤 수면</span>
+          </div>
+          <div style={{display:'flex', alignItems:'center', gap:10}}>
+            <button onClick={() => updateToday({sleepHrs: Math.max(4, (todayData.sleepHrs ?? 8) - 0.5)})}
+              style={{
+                background:'rgba(255,255,255,0.05)', border:`1px solid ${C.line}`,
+                color:C.inkMid, width:28, height:28, borderRadius:8, cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center',
+              }}>
+              <Ic d={i.minus} size={11} />
+            </button>
+            <span style={{
+              fontSize:16, fontWeight:800, minWidth:44, textAlign:'center',
+              color: (todayData.sleepHrs ?? 8) >= 7.5 ? C.sage : C.gold,
+              fontVariantNumeric:'tabular-nums',
+            }}>{todayData.sleepHrs ?? 8}h</span>
+            <button onClick={() => updateToday({sleepHrs: Math.min(12, (todayData.sleepHrs ?? 8) + 0.5)})}
+              style={{
+                background:'rgba(255,255,255,0.05)', border:`1px solid ${C.line}`,
+                color:C.inkMid, width:28, height:28, borderRadius:8, cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center',
+              }}>
+              <Ic d={i.plus} size={11} />
+            </button>
+          </div>
+        </div>
+
+        {/* Note */}
+        <input type="text" value={todayData.note || ''} onChange={e => updateToday({ note: e.target.value })}
+          placeholder="한 줄 메모 (선택)" className="field" style={{marginBottom:8}} />
+        <textarea value={todayData.journal || ''} onChange={e => updateToday({ journal: e.target.value })}
+          placeholder="오늘의 일기 — 자유롭게. 빈 칸이어도 OK."
+          rows={3} className="field" />
+      </div>
+
+      {/* Self question */}
+      <DailySelfQuestion todayData={todayData} updateToday={updateToday} />
+
+      {/* PT tracker */}
+      <div style={{
+        background:C.bg2, borderRadius:16, padding:'18px 20px', marginBottom:14,
+        border:`1px solid ${ptDone ? C.sage+'50' : C.gold+'40'}`,
+        boxShadow: ptDone ? `0 0 30px ${C.sage}10` : `0 0 30px ${C.gold}08`,
+      }}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
+          <div style={{display:'flex', alignItems:'center', gap:7}}>
+            <Ic d={i.dumbbell} size={14} color={ptDone ? C.sage : C.gold} />
+            <span className="section-tag" style={{color:ptDone ? C.sage : C.gold}}>PT 30회 챌린지</span>
+          </div>
+          <div style={{
+            fontSize:22, fontWeight:800, color:ptDone ? C.sage : C.gold,
+            fontVariantNumeric:'tabular-nums',
+          }}>
+            {ptCompleted}<span style={{fontSize:12, color:C.inkDim, fontWeight:400}}>/{PT_CONFIG.total}</span>
+          </div>
+        </div>
+        <div className="progress-track">
+          <div className="progress-fill" style={{
+            width:`${Math.min((ptCompleted/PT_CONFIG.total)*100, 100)}%`,
+            background: ptDone
+              ? `linear-gradient(90deg, ${C.sage}, #6ee7b7)`
+              : `linear-gradient(90deg, ${C.gold}, #fcd34d)`,
+          }} />
+        </div>
+        {ptDone && (
+          <div style={{marginTop:10, fontSize:12, color:C.sage, fontWeight:700, textAlign:'center'}}>🎉 30회 완료!</div>
+        )}
+        {!ptDone && (
+          <div style={{marginTop:8, fontSize:11, color:C.inkDim, textAlign:'right'}}>
+            남은 횟수 <span style={{color:C.gold, fontWeight:700}}>{ptRemaining}</span>회 · 예상 완료 {PT_CONFIG.estimatedEnd}
+          </div>
+        )}
+      </div>
+
+      {/* Leader's Codex */}
+      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'18px 20px', marginBottom:14}}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
+          <div style={{display:'flex', alignItems:'center', gap:7}}>
+            <Ic d={i.crown} size={14} color={C.gold} />
+            <span className="section-tag" style={{color:C.gold}}>Leader's Codex</span>
+          </div>
+        </div>
+        {CODEX.map(entry => <CodexCard key={entry.id} entry={entry} openId={codexOpen} setOpenId={setCodexOpen} />)}
+      </div>
+    </div>
+  );
+}
+
+// ===== ANALYSIS TAB =====
+function AnalysisTab({ data, range, setRange, saveData, streaks }) {
+  const stats = computeStats(data.days, range);
+  const insights = generateInsights(stats);
+  const suggestions = generateGrowthSuggestions(stats);
+  const philosophyMap = analyzePhilosophically(stats);
+  const [openPhil, setOpenPhil] = useState(null);
+
+  const insightColors = { strength: C.sage, caution: C.gold, suggest: C.teal, info: C.plum };
+  const insightIcons = { strength: 'check', caution: 'alert', suggest: 'sparkles', info: 'sparkles' };
+
+  const StatCard = ({ label, value, unit, color }) => (
+    <div className="stat-pill" style={{borderColor: value ? `${color}30` : C.line, background: value ? `${color}08` : 'rgba(255,255,255,0.02)'}}>
+      <div className="section-tag" style={{color:C.inkDim, marginBottom:6}}>{label}</div>
+      <div style={{fontSize:20, fontWeight:800, color: value ? color : C.inkDim, fontVariantNumeric:'tabular-nums', lineHeight:1}}>
+        {value ?? '—'}{value && <span style={{fontSize:10, color:C.inkDim, fontWeight:400, marginLeft:2}}>{unit}</span>}
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      {/* Range selector */}
+      <div style={{display:'flex', gap:6, marginBottom:16}}>
+        {[['week','7일'], ['month','30일'], ['all','전체']].map(([key, label]) => (
+          <button key={key} onClick={() => setRange(key)} className="btn-press" style={{
+            flex:1, padding:'8px', borderRadius:10, border:'none', cursor:'pointer',
+            background: range===key ? `${C.sage}14` : 'rgba(255,255,255,0.03)',
+            color: range===key ? C.sage : C.inkDim,
+            fontSize:11.5, fontWeight:600,
+            border:`1px solid ${range===key ? C.sage+'40' : C.line}`,
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {/* Stats grid */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8, marginBottom:14}}>
+        <StatCard label="활동일" value={stats.activeDays} unit="일" color={C.sage} />
+        <StatCard label="운동일" value={stats.exerciseDays} unit="일" color={C.teal} />
+        <StatCard label="수면" value={stats.sleepAvg?.toFixed(1)} unit="h" color={C.gold} />
+      </div>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8, marginBottom:14}}>
+        <StatCard label="일기" value={stats.journalDays} unit="일" color={C.plum} />
+        <StatCard label="Axis" value={stats.axisCount} unit="회" color={C.rust} />
+        <StatCard label="최장 스트릭" value={streaks.longest} unit="일" color={C.gold} />
+      </div>
+
+      {/* Heatmap */}
+      <MonthlyHeatmap days={data.days} axes={data.axes} />
+
+      {/* Insights */}
+      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'18px 20px', marginBottom:14}}>
+        <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:14}}>
+          <Ic d={i.sparkles} size={14} color={C.sage} />
+          <span className="section-tag" style={{color:C.sage}}>인사이트</span>
+        </div>
+        {insights.map((ins, idx) => {
+          const col = insightColors[ins.type];
+          return (
+            <div key={idx} style={{
+              display:'flex', gap:10, alignItems:'flex-start',
+              padding:'10px 12px', borderRadius:10, marginBottom:6,
+              background:`${col}0a`, border:`1px solid ${col}25`,
+            }}>
+              <div style={{
+                width:24, height:24, borderRadius:7, flexShrink:0,
+                background:`${col}18`, display:'flex', alignItems:'center', justifyContent:'center',
+              }}>
+                <Ic d={i[insightIcons[ins.type]]} size={11} color={col} />
+              </div>
+              <span style={{fontSize:12, color:C.inkMid, lineHeight:1.55, paddingTop:3}}>{ins.text}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Growth suggestions */}
+      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'18px 20px', marginBottom:14}}>
+        <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:14}}>
+          <Ic d={i.target} size={14} color={C.teal} />
+          <span className="section-tag" style={{color:C.teal}}>성장 제안</span>
+        </div>
+        {suggestions.map((s, idx) => (
+          <div key={idx} style={{
+            padding:'12px 14px', borderRadius:10, marginBottom:6,
+            background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`,
+            borderLeft:`3px solid ${[C.rust,C.gold,C.sage][s.priority-1]||C.sage}`,
+          }}>
+            <div style={{fontSize:12.5, fontWeight:700, color:C.ink, marginBottom:4}}>{s.title}</div>
+            <div style={{fontSize:11.5, color:C.inkDim, lineHeight:1.55}}>{s.body}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Philosopher analysis */}
+      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'18px 20px', marginBottom:14}}>
+        <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:14}}>
+          <Ic d={i.brain} size={14} color={C.plum} />
+          <span className="section-tag" style={{color:C.plum}}>철학적 분석</span>
+        </div>
+        {Object.values(philosophyMap).map(({ philosopher, text }) => {
+          const isOpen = openPhil === philosopher.id;
+          return (
+            <div key={philosopher.id} style={{
+              background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`,
+              borderRadius:12, marginBottom:6, overflow:'hidden',
+            }}>
+              <button style={{
+                width:'100%', padding:'12px 14px', background:'transparent', border:'none',
+                cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center',
+                textAlign:'left', borderLeft:`3px solid ${philosopher.color}`,
+              }} onClick={() => setOpenPhil(isOpen ? null : philosopher.id)}>
+                <div>
+                  <div style={{fontSize:13, fontWeight:700, color:C.ink, marginBottom:2}}>{philosopher.name}</div>
+                  <div style={{fontSize:10.5, color:philosopher.color, fontStyle:'italic'}}>{philosopher.subtitle}</div>
+                </div>
+                <div style={{transform:isOpen?'rotate(90deg)':'rotate(0deg)', transition:'transform 0.2s'}}>
+                  <Ic d={i.chevronRight} size={13} color={C.inkDim} />
+                </div>
+              </button>
+              {isOpen && (
+                <div style={{padding:'4px 14px 14px 14px', borderTop:`1px solid ${C.line}`}}>
+                  <p style={{fontSize:11.5, color:C.inkDim, fontStyle:'italic', marginTop:8, marginBottom:10, lineHeight:1.6}}>
+                    {philosopher.motto}
+                  </p>
+                  <p style={{fontSize:12, color:C.inkMid, lineHeight:1.65}}>{text}</p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Past reviews */}
+      <PastReviews reviews={data.weeklyReviews || {}} />
+    </div>
+  );
+}
+
+// ===== MANAGE TAB =====
+function ManageTab({ data, saveData }) {
+  const [editAxis, setEditAxis] = useState(null);
+  const [newAxis, setNewAxis] = useState(false);
+  const [axisForm, setAxisForm] = useState({ label:'', sub:'', color:C.sage, icon:'sparkles' });
+  const [importText, setImportText] = useState('');
+  const [showImport, setShowImport] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const [showBooks, setShowBooks] = useState(false);
+
+  const deleteAxis = (id) => {
+    if (!confirm('이 Axis를 삭제할까요?')) return;
+    saveData({ ...data, axes: data.axes.filter(a => a.id !== id) });
+  };
+  const saveAxis = () => {
+    if (!axisForm.label.trim()) return;
+    if (editAxis) {
+      saveData({ ...data, axes: data.axes.map(a => a.id === editAxis ? { ...a, ...axisForm } : a) });
+      setEditAxis(null);
+    } else {
+      saveData({ ...data, axes: [...data.axes, { id: uid(), ...axisForm }] });
+      setNewAxis(false);
+    }
+    setAxisForm({ label:'', sub:'', color:C.sage, icon:'sparkles' });
+  };
+
+  const exportData = () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'lifestyle-tracker.json'; a.click();
+  };
+  const importData = () => {
+    try {
+      const parsed = JSON.parse(importText);
+      saveData({ ...initialData(), ...parsed });
+      setImportText(''); setShowImport(false);
+      alert('가져오기 완료!');
+    } catch { alert('JSON 형식이 잘못됐습니다.'); }
+  };
+  const toggleGuideTask = (id) => {
+    saveData({ ...data, guideTasksDone: { ...data.guideTasksDone, [id]: !data.guideTasksDone[id] } });
+  };
+
+  const SectionToggle = ({ label, icon, color, open, onToggle, children }) => (
+    <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:14, marginBottom:10, overflow:'hidden'}}>
+      <button onClick={onToggle} style={{
+        width:'100%', padding:'14px 16px', background:'transparent', border:'none',
+        cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center',
+        borderLeft:`3px solid ${color}`,
+      }}>
+        <div style={{display:'flex', alignItems:'center', gap:8}}>
+          <Ic d={i[icon]} size={14} color={color} />
+          <span style={{fontSize:13, fontWeight:700, color:C.ink}}>{label}</span>
+        </div>
+        <div style={{transform:open?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.2s'}}>
+          <Ic d={i.chevronDown} size={13} color={C.inkDim} />
+        </div>
+      </button>
+      {open && <div style={{padding:'4px 16px 16px', borderTop:`1px solid ${C.line}`}}>{children}</div>}
+    </div>
+  );
+
+  return (
+    <div>
+      {/* Axes management */}
+      <SectionToggle label="학습 Axis 관리" icon="sparkles" color={C.sage} open={true} onToggle={() => {}}>
+        {data.axes.map(ax => (
+          <div key={ax.id} style={{
+            display:'flex', justifyContent:'space-between', alignItems:'center',
+            padding:'10px 12px', borderRadius:10, marginTop:8,
+            background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`,
+            borderLeft:`3px solid ${ax.color}`,
+          }}>
+            <div style={{display:'flex', alignItems:'center', gap:8}}>
+              <Ic d={i[ax.icon]} size={13} color={ax.color} />
+              <div>
+                <div style={{fontSize:12.5, fontWeight:700, color:C.ink}}>{ax.label}</div>
+                <div style={{fontSize:11, color:C.inkDim}}>{ax.sub}</div>
+              </div>
+            </div>
+            <div style={{display:'flex', gap:5}}>
+              <button onClick={() => { setEditAxis(ax.id); setAxisForm({label:ax.label,sub:ax.sub,color:ax.color,icon:ax.icon}); setNewAxis(true); }}
+                style={{background:'rgba(255,255,255,0.05)', border:`1px solid ${C.line}`, color:C.inkMid, padding:'5px 8px', borderRadius:7, cursor:'pointer', display:'flex', alignItems:'center'}}>
+                <Ic d={i.edit} size={12} />
+              </button>
+              <button onClick={() => deleteAxis(ax.id)}
+                style={{background:`${C.rust}12`, border:`1px solid ${C.rust}30`, color:C.rust, padding:'5px 8px', borderRadius:7, cursor:'pointer', display:'flex', alignItems:'center'}}>
+                <Ic d={i.trash} size={12} />
+              </button>
+            </div>
+          </div>
+        ))}
+        {newAxis && (
+          <div style={{marginTop:12, padding:'14px', background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`, borderRadius:10}}>
+            <div className="section-tag" style={{color:C.sage, marginBottom:10}}>{editAxis ? 'Axis 수정' : '새 Axis 추가'}</div>
+            <input value={axisForm.label} onChange={e => setAxisForm({...axisForm, label:e.target.value})} placeholder="이름 (ex: Axis III)" className="field" style={{marginBottom:8}} />
+            <input value={axisForm.sub} onChange={e => setAxisForm({...axisForm, sub:e.target.value})} placeholder="설명 (ex: 언어 학습)" className="field" style={{marginBottom:10}} />
+            <div style={{display:'flex', gap:5, flexWrap:'wrap', marginBottom:10}}>
+              {COLOR_OPTIONS.map(c => (
+                <button key={c} onClick={() => setAxisForm({...axisForm, color:c})} style={{
+                  width:26, height:26, borderRadius:7, background:c,
+                  border:`2px solid ${axisForm.color === c ? '#fff' : 'transparent'}`,
+                  cursor:'pointer',
+                }} />
+              ))}
+            </div>
+            <div style={{display:'flex', gap:5, flexWrap:'wrap', marginBottom:12}}>
+              {ICON_OPTIONS.map(ic => (
+                <button key={ic} onClick={() => setAxisForm({...axisForm, icon:ic})} style={{
+                  width:30, height:30, borderRadius:7,
+                  background: axisForm.icon === ic ? `${axisForm.color}20` : 'rgba(255,255,255,0.03)',
+                  border:`1px solid ${axisForm.icon === ic ? axisForm.color : C.line}`,
+                  cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+                }}>
+                  <Ic d={i[ic]} size={13} color={axisForm.icon === ic ? axisForm.color : C.inkDim} />
+                </button>
+              ))}
+            </div>
+            <div style={{display:'flex', gap:6}}>
+              <button onClick={saveAxis} className="btn-press" style={{
+                flex:1, padding:'9px', borderRadius:9, border:'none', cursor:'pointer',
+                background:`linear-gradient(135deg, ${C.sage}, #6ee7b7)`,
+                color:'#0a0c14', fontSize:12.5, fontWeight:700,
+              }}>저장</button>
+              <button onClick={() => { setNewAxis(false); setEditAxis(null); }} className="btn-press" style={{
+                flex:1, padding:'9px', borderRadius:9, cursor:'pointer',
+                background:'rgba(255,255,255,0.04)', border:`1px solid ${C.line}`,
+                color:C.inkDim, fontSize:12.5,
+              }}>취소</button>
+            </div>
+          </div>
+        )}
+        {!newAxis && (
+          <button onClick={() => { setNewAxis(true); setEditAxis(null); setAxisForm({label:'',sub:'',color:C.sage,icon:'sparkles'}); }}
+            className="btn-press" style={{
+              width:'100%', marginTop:10, padding:'10px', borderRadius:10,
+              background:'rgba(52,211,153,0.06)', border:`1px dashed ${C.sage}40`,
+              color:C.sage, fontSize:12, fontWeight:600, cursor:'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+            }}>
+            <Ic d={i.plus} size={13} color={C.sage} /> Axis 추가
+          </button>
+        )}
+      </SectionToggle>
+
+      {/* Guide tasks */}
+      <SectionToggle label="가이드 태스크" icon="calendar" color={C.teal} open={showGuide} onToggle={() => setShowGuide(!showGuide)}>
+        {[1,2,3].map(week => {
+          const tasks = data.guideTasks.filter(t => t.week === week);
+          if (!tasks.length) return null;
+          return (
+            <div key={week} style={{marginTop:10}}>
+              <div className="section-tag" style={{color:C.teal, marginBottom:8}}>Week {week}</div>
+              {tasks.map(t => {
+                const done = data.guideTasksDone?.[t.id];
+                return (
+                  <div key={t.id} onClick={() => toggleGuideTask(t.id)} style={{
+                    display:'flex', alignItems:'center', gap:10, padding:'9px 12px', borderRadius:9,
+                    marginBottom:5, cursor:'pointer',
+                    background: done ? 'rgba(52,211,153,0.06)' : 'rgba(255,255,255,0.02)',
+                    border:`1px solid ${done ? C.sage+'30' : C.line}`,
+                    transition:'all 0.15s',
+                  }}>
+                    <div style={{
+                      width:18, height:18, borderRadius:5, flexShrink:0,
+                      background: done ? C.sage : 'rgba(255,255,255,0.04)',
+                      border:`1px solid ${done ? C.sage : C.line}`,
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                    }}>
+                      {done && <Ic d={i.check} size={10} color='#0a0c14' />}
+                    </div>
+                    <span style={{fontSize:12, color:done ? C.inkDim : C.inkMid, textDecoration:done ? 'line-through' : 'none', lineHeight:1.4}}>{t.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </SectionToggle>
+
+      {/* Books */}
+      <SectionToggle label="독서 추적" icon="book" color={C.plum} open={showBooks} onToggle={() => setShowBooks(!showBooks)}>
+        {data.books.map(book => {
+          const pct = Math.round((book.progress / book.total) * 100);
+          return (
+            <div key={book.id} style={{padding:'12px', borderRadius:10, marginTop:10, background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`}}>
+              <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
+                <div>
+                  <div style={{fontSize:13, fontWeight:700, color:C.ink}}>{book.title}</div>
+                  <div style={{fontSize:11, color:C.inkDim}}>{book.author} · Axis {book.axis}</div>
+                </div>
+                <span style={{fontSize:13, fontWeight:700, color:C.plum}}>{pct}%</span>
+              </div>
+              <div className="progress-track" style={{marginBottom:8}}>
+                <div className="progress-fill" style={{width:`${pct}%`, background:`linear-gradient(90deg, ${C.plum}, #c4b5fd)`}} />
+              </div>
+              <div style={{display:'flex', alignItems:'center', gap:8}}>
+                <span style={{fontSize:11, color:C.inkDim}}>{book.progress}/{book.total}p</span>
+                <div style={{display:'flex', gap:5, marginLeft:'auto'}}>
+                  <button onClick={() => saveData({...data, books: data.books.map(b => b.id===book.id ? {...b, progress: Math.max(0, b.progress-10)} : b)})}
+                    style={{background:'rgba(255,255,255,0.04)', border:`1px solid ${C.line}`, color:C.inkDim, width:26, height:26, borderRadius:7, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                    <Ic d={i.minus} size={11} />
+                  </button>
+                  <button onClick={() => saveData({...data, books: data.books.map(b => b.id===book.id ? {...b, progress: Math.min(b.total, b.progress+10)} : b)})}
+                    style={{background:`${C.plum}14`, border:`1px solid ${C.plum}30`, color:C.plum, width:26, height:26, borderRadius:7, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                    <Ic d={i.plus} size={11} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </SectionToggle>
+
+      {/* Data management */}
+      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:14, padding:'16px 18px', marginBottom:10}}>
+        <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:14}}>
+          <Ic d={i.settings} size={14} color={C.slate} />
+          <span className="section-tag" style={{color:C.slate}}>데이터 관리</span>
+        </div>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:10}}>
+          <button onClick={exportData} className="btn-press" style={{
+            padding:'10px 12px', borderRadius:10, cursor:'pointer',
+            background:'rgba(255,255,255,0.03)', border:`1px solid ${C.line}`,
+            color:C.inkMid, fontSize:12, fontWeight:600,
+            display:'flex', alignItems:'center', gap:7, justifyContent:'center',
+          }}>
+            <Ic d={i.download} size={13} /> 내보내기
+          </button>
+          <button onClick={() => setShowImport(!showImport)} className="btn-press" style={{
+            padding:'10px 12px', borderRadius:10, cursor:'pointer',
+            background:'rgba(255,255,255,0.03)', border:`1px solid ${C.line}`,
+            color:C.inkMid, fontSize:12, fontWeight:600,
+            display:'flex', alignItems:'center', gap:7, justifyContent:'center',
+          }}>
+            <Ic d={i.upload} size={13} /> 가져오기
+          </button>
+        </div>
+        {showImport && (
+          <div>
+            <textarea value={importText} onChange={e => setImportText(e.target.value)} placeholder="JSON 데이터 붙여넣기..." rows={4} className="field" style={{marginBottom:8}} />
+            <button onClick={importData} className="btn-press" style={{
+              width:'100%', padding:'9px', borderRadius:9, border:'none', cursor:'pointer',
+              background:`linear-gradient(135deg, ${C.teal}, #67e8f9)`,
+              color:'#0a0c14', fontSize:12.5, fontWeight:700,
+            }}>가져오기 실행</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ===== MAIN APP =====
 function App() {
   const [data, setData] = useState(null);
   const [savedFlash, setSavedFlash] = useState(false);
   const [activeTab, setActiveTab] = useState('today');
-  const [modal, setModal] = useState(null);
   const [analysisRange, setAnalysisRange] = useState('week');
 
   useEffect(() => {
@@ -442,76 +1618,99 @@ function App() {
     } catch { setData(initialData()); }
   }, []);
 
-  const saveData = (newData) => {
+  const saveData = useCallback((newData) => {
     setData(newData);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
       setSavedFlash(true);
-      setTimeout(() => setSavedFlash(false), 1200);
-    } catch (e) { console.error(e); }
-  };
+      setTimeout(() => setSavedFlash(false), 1500);
+    } catch(e) { console.error(e); }
+  }, []);
 
-  if (!data) return (<div style={{minHeight:'100vh', background:C.bg, color:C.inkDim, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontFamily:'monospace', letterSpacing:'0.1em'}}>loading...</div>);
+  if (!data) return (
+    <div style={{minHeight:'100vh', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:12}}>
+      <div style={{width:36, height:36, border:`2px solid ${C.sage}`, borderTopColor:'transparent', borderRadius:'50%', animation:'spin 0.8s linear infinite'}} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <span style={{fontSize:12, color:C.inkDim, letterSpacing:'0.1em'}}>loading...</span>
+    </div>
+  );
 
   const today = todayStr();
-  const todayData = data.days[today] || { axes: [], exerciseType: null, sleepHrs: 8, note: '', cafe: false, mood: null, journal: '', selfQ: {} };
+  const todayData = data.days[today] || { axes:[], exerciseType:null, sleepHrs:8, note:'', cafe:false, mood:null, journal:'', selfQ:{} };
   const dToStart = dDay(data.startDate);
   const ptDoneSinceStart = Object.values(data.days).filter(d => d.exerciseType === 'pt').length;
   const ptCompleted = PT_CONFIG.initialDone + ptDoneSinceStart;
   const ptRemaining = Math.max(0, PT_CONFIG.total - ptCompleted);
   const ptDone = ptRemaining === 0;
-
   const updateToday = (patch) => saveData({ ...data, days: { ...data.days, [today]: { ...todayData, ...patch } } });
   const toggleAxis = (axisId) => {
     const axes = todayData.axes.includes(axisId) ? todayData.axes.filter(a => a !== axisId) : [...todayData.axes, axisId];
     updateToday({ axes });
   };
   const setExerciseType = (typeId) => updateToday({ exerciseType: todayData.exerciseType === typeId ? null : typeId });
-
   const todayDay = ['일','월','화','수','목','금','토'][new Date(today).getDay()];
   const isSunday = new Date(today).getDay() === 0;
   const streaks = calculateStreaks(data.days);
 
   const TABS = [
-    { id: 'today', label: 'Today', icon: 'home' },
-    { id: 'analysis', label: 'Analysis', icon: 'brain' },
-    { id: 'manage', label: 'Manage', icon: 'settings' },
+    { id:'today', label:'Today', icon:'home' },
+    { id:'analysis', label:'Analysis', icon:'brain' },
+    { id:'manage', label:'Manage', icon:'settings' },
   ];
 
   return (
-    <div style={{minHeight:'100vh', background:C.bg, color:C.ink, paddingBottom:60}}>
-      <div style={{maxWidth: 520, margin: '0 auto', padding:'0 16px'}}>
+    <div style={{minHeight:'100vh', background:C.bg, color:C.ink, paddingBottom:64}}>
+      <div style={{maxWidth:520, margin:'0 auto', padding:'0 16px'}}>
 
-        <header style={{paddingTop:24, marginBottom:16, borderTop: `2px solid ${C.sage}`, position:'relative'}}>
-          <div style={{position:'absolute', top:-2, left:0, width:60, height:5, background: C.sage}} />
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline'}}>
-            <span style={{fontFamily:'ui-monospace, monospace', fontSize:9, color: C.sage, letterSpacing:'0.25em', textTransform:'uppercase'}}>Lifestyle · v8</span>
-            <span style={{fontFamily:'ui-monospace, monospace', fontSize:9, color: savedFlash ? C.sage : 'transparent', letterSpacing:'0.15em', transition:'color 0.3s'}}>✓ saved</span>
+        {/* Header */}
+        <header style={{paddingTop:28, marginBottom:18}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}}>
+            <div style={{display:'flex', alignItems:'center', gap:8}}>
+              <div style={{
+                width:28, height:28, borderRadius:8,
+                background:`linear-gradient(135deg, ${C.sage}30, ${C.teal}20)`,
+                border:`1px solid ${C.sage}40`,
+                display:'flex', alignItems:'center', justifyContent:'center',
+              }}>
+                <div style={{width:10, height:10, borderRadius:'50%', background:`linear-gradient(135deg, ${C.sage}, ${C.teal})`}} />
+              </div>
+              <span style={{fontSize:10.5, fontWeight:700, color:C.inkDim, letterSpacing:'0.15em', textTransform:'uppercase'}}>Lifestyle · v8</span>
+            </div>
+            <span style={{
+              fontSize:10, color:savedFlash ? C.sage : 'transparent',
+              fontWeight:600, letterSpacing:'0.1em',
+              transition:'color 0.3s, opacity 0.3s',
+              display:'flex', alignItems:'center', gap:4,
+            }}>
+              <Ic d={i.check} size={10} color={C.sage} /> 저장됨
+            </span>
           </div>
-          <h1 style={{fontSize: 30, fontStyle:'italic', fontWeight:600, lineHeight:1, marginTop:8, marginBottom:6, fontFamily:'Georgia, serif'}}>
-            {today.split('-')[1]}<span style={{color:C.sage}}>.</span>{today.split('-')[2]}
-            <span style={{fontSize:13, color:C.inkDim, marginLeft:10, fontStyle:'normal', fontFamily:'inherit', fontWeight:500}}>{todayDay}요일</span>
-          </h1>
+          <div style={{display:'flex', alignItems:'baseline', gap:10}}>
+            <h1 style={{
+              fontSize:38, fontWeight:800, lineHeight:1.1,
+              background:`linear-gradient(135deg, ${C.ink} 0%, ${C.inkMid} 100%)`,
+              WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text',
+            }}>
+              {today.split('-')[1]}<span style={{color:C.sage, WebkitTextFillColor:C.sage}}>.</span>{today.split('-')[2]}
+            </h1>
+            <span style={{fontSize:14, color:C.inkDim, fontWeight:500}}>{todayDay}요일</span>
+          </div>
         </header>
 
+        {/* Streaks */}
         <StreakBanner streaks={streaks} />
 
-        <div style={{display:'flex', borderBottom:`1px solid ${C.line}`, marginBottom:18, gap:0}}>
+        {/* Tab bar */}
+        <div className="tab-bar" style={{marginBottom:20}}>
           {TABS.map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-              flex:1, padding:'10px 8px',
-              background: activeTab === t.id ? 'rgba(155,179,138,0.08)' : 'transparent',
-              color: activeTab === t.id ? C.sage : C.inkDim,
-              border:'none', borderBottom: `2px solid ${activeTab === t.id ? C.sage : 'transparent'}`,
-              cursor:'pointer', fontSize:11, fontFamily:'ui-monospace, monospace',
-              letterSpacing:'0.15em', textTransform:'uppercase',
-              display:'flex', alignItems:'center', justifyContent:'center', gap:6,
-            }}>
-              <Ic d={i[t.icon]} size={11} />{t.label}
+            <button key={t.id} className={`tab-btn ${activeTab===t.id ? 'active' : ''}`} onClick={() => setActiveTab(t.id)}>
+              <Ic d={i[t.icon]} size={12} color={activeTab===t.id ? C.sage : C.inkDim} />
+              {t.label}
             </button>
           ))}
         </div>
 
+        {/* Tab content */}
         {activeTab === 'today' && (
           <TodayTab
             data={data} today={today} todayData={todayData} dToStart={dToStart}
@@ -524,905 +1723,14 @@ function App() {
           <AnalysisTab data={data} range={analysisRange} setRange={setAnalysisRange} saveData={saveData} streaks={streaks} />
         )}
         {activeTab === 'manage' && (
-          <ManageTab data={data} saveData={saveData} setModal={setModal} modal={modal} />
+          <ManageTab data={data} saveData={saveData} />
         )}
 
-        <div style={{marginTop:28, paddingTop:14, borderTop:`1px solid ${C.line}`, textAlign:'center'}}>
-          <div style={{fontSize:8.5, color:C.inkDim, letterSpacing:'0.2em', fontFamily:'ui-monospace, monospace', textTransform:'uppercase'}}>v8 · localStorage</div>
+        {/* Footer */}
+        <div style={{marginTop:32, paddingTop:14, borderTop:`1px solid ${C.line}`, textAlign:'center'}}>
+          <span style={{fontSize:9, color:C.inkDim, letterSpacing:'0.2em', textTransform:'uppercase'}}>v8 · localStorage</span>
         </div>
       </div>
-    </div>
-  );
-}
-
-function StreakBanner({ streaks }) {
-  const items = [
-    { label: '활동', value: streaks.activity, icon: 'sparkles', color: C.sage },
-    { label: '운동', value: streaks.exercise, icon: 'dumbbell', color: C.teal },
-    { label: '일기', value: streaks.journal, icon: 'pen', color: C.gold },
-  ];
-  return (
-    <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:6, marginBottom:14}}>
-      {items.map(it => (
-        <div key={it.label} style={{
-          background: it.value > 0 ? `${it.color}10` : 'rgba(255,255,255,0.02)',
-          border: `1px solid ${it.value > 0 ? it.color + '60' : C.line}`,
-          padding:'10px 8px', textAlign:'center', position:'relative', overflow:'hidden',
-        }}>
-          {it.value >= 7 && <div className="pulse" style={{position:'absolute', top:0, right:0, padding:'2px 6px', background: it.color, color:C.bg, fontSize:8, fontFamily:'ui-monospace, monospace', fontWeight:700, letterSpacing:'0.1em'}}>🔥</div>}
-          <div style={{display:'flex', justifyContent:'center', alignItems:'center', gap:5, marginBottom:3}}>
-            <Ic d={i[it.icon]} size={10} color={it.value > 0 ? it.color : C.inkDim} />
-            <span style={{fontSize:9, fontFamily:'ui-monospace, monospace', color:it.value > 0 ? it.color : C.inkDim, letterSpacing:'0.15em', textTransform:'uppercase'}}>{it.label}</span>
-          </div>
-          <div style={{fontSize:18, fontWeight:700, color: it.value > 0 ? it.color : C.inkDim, fontFamily:'Georgia, serif', fontStyle:'italic', lineHeight:1}}>
-            {it.value}<span style={{fontSize:10, color:C.inkDim, fontStyle:'normal', marginLeft:2}}>일</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ===== Daily Self-Question (3 questions before journal) =====
-function DailySelfQuestion({ todayData, updateToday }) {
-  const selfQ = todayData.selfQ || {};
-
-  const setAnswer = (qid, val) => {
-    updateToday({ selfQ: { ...selfQ, [qid]: val } });
-  };
-
-  return (
-    <section style={{background:C.bg2, border:`1px solid ${C.line}`, borderTop:`2px solid ${C.gold}`, padding:'18px 16px', marginBottom:14}}>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
-        <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.gold, textTransform:'uppercase', display:'flex', alignItems:'center', gap:5}}>
-          <Ic d={i.target} size={10} />하루의 갈무리
-        </div>
-        <span style={{fontSize:10, color:C.inkDim, fontStyle:'italic', fontFamily:'Georgia, serif'}}>"연극을 마친 배우처럼"</span>
-      </div>
-
-      <p style={{fontSize:11.5, color:C.inkDim, lineHeight:1.55, marginBottom:14, fontStyle:'italic', fontFamily:'Georgia, serif'}}>
-        매일 밤, 화장을 지우듯 세 가지 질문에 답하며 하루를 마무리하세요. 답이 안 나오면 빈 칸 OK.
-      </p>
-
-      {SELF_QUESTIONS.map(sq => {
-        const ans = selfQ[sq.id] ?? null;
-        return (
-          <div key={sq.id} style={{marginBottom:14}}>
-            <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:6}}>
-              <span style={{fontSize:9, fontFamily:'ui-monospace, monospace', color:sq.color, padding:'2px 7px', border:`1px solid ${sq.color}`, letterSpacing:'0.15em', fontWeight:600}}>{sq.dim}</span>
-            </div>
-            <p style={{fontSize:12.5, color:C.ink, lineHeight:1.55, marginBottom:8, fontStyle:'italic', fontFamily:'Georgia, serif'}}>
-              {sq.q}
-            </p>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:5}}>
-              {[
-                { v: 'yes', l: '응', col: C.sage },
-                { v: 'partial', l: '반쯤', col: C.gold },
-                { v: 'no', l: '아니', col: C.rust },
-              ].map(opt => {
-                const active = ans === opt.v;
-                return (
-                  <button key={opt.v} onClick={() => setAnswer(sq.id, active ? null : opt.v)} style={{
-                    padding:'7px 6px',
-                    background: active ? `${opt.col}25` : 'rgba(255,255,255,0.02)',
-                    border: `1px solid ${active ? opt.col : C.line}`,
-                    color: active ? opt.col : C.inkDim,
-                    cursor:'pointer', fontSize:10.5,
-                    fontWeight: active ? 700 : 500,
-                  }}>{opt.l}</button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-
-      <div style={{padding:'10px 12px', background:'rgba(155,179,138,0.06)', borderLeft:`2px solid ${C.sage}`, fontSize:10.5, color:C.inkDim, lineHeight:1.5, marginTop:6}}>
-        <b style={{color:C.sage, fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.15em', textTransform:'uppercase'}}>회복 노트</b>
-        <p style={{marginTop:4}}>"아니"가 많은 날도 데이터예요. 자책의 도구가 아닌, 다음 하루 설계의 재료. <b style={{color:C.ink}}>지치지 않는 정교한 일상이 가장 날카로운 무기.</b></p>
-      </div>
-    </section>
-  );
-}
-
-// ===== Codex Card (Leader's Codex) =====
-function CodexCard({ entry, openId, setOpenId }) {
-  const isOpen = openId === entry.id;
-  return (
-    <div style={{background:C.bg2, border:`1px solid ${C.line}`, marginBottom:6, overflow:'hidden'}}>
-      <button onClick={() => setOpenId(isOpen ? null : entry.id)} style={{
-        width:'100%', padding:'14px 16px',
-        background:'transparent', border:'none', cursor:'pointer',
-        display:'flex', justifyContent:'space-between', alignItems:'center',
-        textAlign:'left', borderLeft:`3px solid ${entry.color}`,
-      }}>
-        <div style={{flex:1, minWidth:0, display:'flex', alignItems:'center', gap:12}}>
-          <Ic d={i[entry.icon]} size={18} color={entry.color} />
-          <div>
-            <div style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:2}}>
-              <span style={{fontSize:13.5, fontWeight:700, color:C.ink, fontFamily:'Georgia, serif', fontStyle:'italic'}}>{entry.title}</span>
-            </div>
-            <div style={{fontSize:10.5, color:entry.color, fontStyle:'italic', fontFamily:'Georgia, serif', lineHeight:1.4}}>
-              {entry.subtitle}
-            </div>
-          </div>
-        </div>
-        <Ic d={i.chevronRight} size={14} color={C.inkDim} />
-      </button>
-      {isOpen && (
-        <div style={{padding:'4px 16px 16px 16px', borderTop:`1px solid ${C.line}`}}>
-          <p style={{fontSize:12, color:C.inkDim, lineHeight:1.65, marginTop:12, marginBottom:14, fontStyle:'italic', fontFamily:'Georgia, serif'}}>
-            {entry.intro}
-          </p>
-
-          <div style={{padding:'12px 14px', background:`${entry.color}10`, borderLeft:`2px solid ${entry.color}`, marginBottom:14}}>
-            <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, color:entry.color, letterSpacing:'0.2em', marginBottom:5, textTransform:'uppercase'}}>정신 무장</div>
-            <p style={{fontSize:12.5, color:C.ink, lineHeight:1.6, fontStyle:'italic', fontFamily:'Georgia, serif'}}>{entry.motto}</p>
-          </div>
-
-          <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, color:C.inkDim, letterSpacing:'0.2em', marginBottom:8, textTransform:'uppercase'}}>실천 조언</div>
-          <ul style={{listStyle:'none', padding:0}}>
-            {entry.practices.map((p, idx) => (
-              <li key={idx} style={{
-                padding:'8px 0 8px 20px',
-                position:'relative', fontSize:12, color:C.ink, lineHeight:1.6,
-                borderBottom: idx < entry.practices.length - 1 ? `1px dashed ${C.line}` : 'none',
-              }}>
-                <span style={{position:'absolute', left:0, top:9, color:entry.color, fontFamily:'ui-monospace, monospace', fontSize:9, fontWeight:700}}>0{idx+1}</span>
-                {p}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MonthlyHeatmap({ days, axes }) {
-  const [offset, setOffset] = useState(0);
-  const [selectedDate, setSelectedDate] = useState(null);
-
-  const d0 = new Date();
-  d0.setMonth(d0.getMonth() + offset);
-  d0.setDate(1); d0.setHours(0,0,0,0);
-  const target = d0;
-
-  const year = target.getFullYear();
-  const month = target.getMonth();
-  const monthLabel = `${year}.${String(month+1).padStart(2,'0')}`;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDayOfWeek = new Date(year, month, 1).getDay();
-
-  const offset2 = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
-  const cells = [];
-  for (let p = 0; p < offset2; p++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
-
-  const todayKey = todayStr();
-  const getDayIntensity = (day) => {
-    if (!day) return null;
-    const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    const data = days[ds];
-    if (!data) return { intensity: 0, key: ds, isToday: ds === todayKey };
-    let score = 0;
-    if (data.axes && data.axes.length > 0) score += data.axes.length;
-    if (data.exerciseType) score += 1;
-    if (data.journal && data.journal.trim()) score += 1;
-    if (data.note && data.note.trim()) score += 0.5;
-    return { intensity: Math.min(score, 5), key: ds, isToday: ds === todayKey, data };
-  };
-
-  const getColor = (intensity) => {
-    if (!intensity || intensity === 0) return C.bg3;
-    const opacity = Math.min(0.2 + (intensity / 5) * 0.7, 0.9);
-    return `rgba(155, 179, 138, ${opacity})`;
-  };
-
-  const selected = selectedDate ? days[selectedDate] : null;
-
-  return (
-    <div style={{background:C.bg2, border:`1px solid ${C.line}`, padding:16, marginBottom:14}}>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
-        <button onClick={() => setOffset(offset - 1)} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, padding:6, cursor:'pointer'}}>
-          <Ic d={i.chevronLeft} size={12} />
-        </button>
-        <div style={{fontFamily:'Georgia, serif', fontStyle:'italic', fontWeight:600, fontSize:18, color:C.ink}}>{monthLabel}</div>
-        <button onClick={() => setOffset(Math.min(0, offset + 1))} disabled={offset === 0} style={{
-          background:'transparent', border:`1px solid ${C.line}`, color:offset === 0 ? C.line : C.inkDim,
-          padding:6, cursor: offset === 0 ? 'not-allowed' : 'pointer', opacity: offset === 0 ? 0.3 : 1,
-        }}>
-          <Ic d={i.chevronRight} size={12} />
-        </button>
-      </div>
-
-      <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3, marginBottom:5}}>
-        {['월','화','수','목','금','토','일'].map((d, idx) => (
-          <div key={d} style={{textAlign:'center', fontSize:9, fontFamily:'ui-monospace, monospace', color: idx >= 5 ? C.gold : C.inkDim, letterSpacing:'0.1em', padding:'3px 0'}}>{d}</div>
-        ))}
-      </div>
-
-      <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3, marginBottom:12}}>
-        {cells.map((day, idx) => {
-          if (!day) return <div key={idx} />;
-          const info = getDayIntensity(day);
-          const color = getColor(info?.intensity);
-          const isSelected = selectedDate === info?.key;
-          return (
-            <button key={idx} className="heatmap-cell"
-              onClick={() => setSelectedDate(isSelected ? null : info.key)}
-              style={{
-                aspectRatio: '1', background: color,
-                border: `1px solid ${info?.isToday ? C.sage : (isSelected ? C.gold : C.line)}`,
-                cursor: 'pointer', position:'relative',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                padding: 0, fontSize: 10, fontFamily:'Georgia, serif',
-                color: info?.intensity > 2 ? C.bg : C.ink,
-                fontWeight: info?.isToday ? 700 : 500,
-              }}>
-              {day}
-              {info?.data?.exerciseType === 'pt' && (<div style={{position:'absolute', top:1, right:1, width:3, height:3, background:C.gold, borderRadius:'50%'}} />)}
-              {info?.data?.cafe && (<div style={{position:'absolute', bottom:1, left:1, width:3, height:3, background:C.rust, borderRadius:'50%'}} />)}
-            </button>
-          );
-        })}
-      </div>
-
-      <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:8, fontSize:9, color:C.inkDim, fontFamily:'ui-monospace, monospace', letterSpacing:'0.05em', marginBottom:8}}>
-        <span>적음</span>
-        {[0, 1, 2, 3, 4, 5].map(v => (<div key={v} style={{width:11, height:11, background:getColor(v), border:`1px solid ${C.line}`}} />))}
-        <span>많음</span>
-      </div>
-
-      {selected && (
-        <div style={{padding:'10px 12px', background:'rgba(0,0,0,0.25)', border:`1px dashed ${C.gold}`, fontSize:11.5, color:C.ink, lineHeight:1.55}}>
-          <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, color:C.gold, letterSpacing:'0.15em', marginBottom:4, textTransform:'uppercase'}}>{fmt(selectedDate)}</div>
-          {selected.axes?.length > 0 && (
-            <div style={{display:'flex', gap:5, flexWrap:'wrap', marginBottom:4}}>
-              {selected.axes.map(aid => {
-                const ax = axes.find(a => a.id === aid);
-                if (!ax) return null;
-                return <span key={aid} style={{fontSize:9, padding:'2px 6px', border:`1px solid ${ax.color}`, color:ax.color}}>{ax.label}</span>;
-              })}
-            </div>
-          )}
-          {selected.exerciseType && <div style={{fontSize:11, color:C.teal}}>운동: {EXERCISE_TYPES.find(t => t.id === selected.exerciseType)?.label}</div>}
-          {selected.mood && <div style={{fontSize:11}}>기분: {MOODS.find(m => m.v === selected.mood)?.emoji} {MOODS.find(m => m.v === selected.mood)?.label}</div>}
-          {selected.note && <div style={{fontSize:11, color:C.inkDim, fontStyle:'italic', marginTop:4}}>"{selected.note}"</div>}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SundayReview({ data, saveData, isSunday, forceShow }) {
-  const weekKey = getWeekKey();
-  const review = data.weeklyReviews?.[weekKey] || { best: '', hardest: '', nextWeek: '' };
-  const [open, setOpen] = useState(isSunday && (!review.best && !review.hardest && !review.nextWeek));
-
-  const update = (field, value) => {
-    saveData({ ...data, weeklyReviews: { ...data.weeklyReviews, [weekKey]: { ...review, [field]: value } } });
-  };
-
-  if (!isSunday && !forceShow && !open) return null;
-
-  return (
-    <section style={{background:C.bg2, border:`2px solid ${C.gold}`, padding:'18px 16px', marginBottom:14, position:'relative'}}>
-      <div style={{position:'absolute', top:-2, left:0, right:0, height:3, background:C.gold}} />
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, gap:10}}>
-        <div>
-          <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.gold, marginBottom:4, textTransform:'uppercase', display:'flex', alignItems:'center', gap:5}}>
-            <Ic d={i.calendar} size={10} />일요일 회고
-          </div>
-          <div style={{fontSize:14, color:C.ink, fontWeight:600, fontStyle:'italic', fontFamily:'Georgia, serif'}}>
-            {isSunday ? '카페에서 5분만' : `Week ${weekKey}`}
-          </div>
-        </div>
-        <button onClick={() => setOpen(!open)} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.gold, padding:'4px 10px', fontSize:10, fontFamily:'ui-monospace, monospace', cursor:'pointer', letterSpacing:'0.1em'}}>{open ? '접기' : '펼치기'}</button>
-      </div>
-      {open && (
-        <div>
-          <div style={{marginBottom:12}}>
-            <label style={{fontSize:9.5, fontFamily:'ui-monospace, monospace', color:C.sage, letterSpacing:'0.15em', marginBottom:4, display:'block', textTransform:'uppercase'}}>✓ 가장 좋았던 1순간</label>
-            <textarea value={review.best} onChange={e => update('best', e.target.value)} placeholder="이번 주 가장 좋았던 순간 한 가지..." rows={2}
-              style={{width:'100%', padding:'9px 11px', background:'rgba(155,179,138,0.05)', border:`1px solid ${C.line}`, color:C.ink, fontSize:12, outline:'none', boxSizing:'border-box', lineHeight:1.5}} />
-          </div>
-          <div style={{marginBottom:12}}>
-            <label style={{fontSize:9.5, fontFamily:'ui-monospace, monospace', color:C.rust, letterSpacing:'0.15em', marginBottom:4, display:'block', textTransform:'uppercase'}}>✗ 가장 어려웠던 1순간</label>
-            <textarea value={review.hardest} onChange={e => update('hardest', e.target.value)} placeholder="가장 힘들었던 순간이나 그날..." rows={2}
-              style={{width:'100%', padding:'9px 11px', background:'rgba(199,86,64,0.05)', border:`1px solid ${C.line}`, color:C.ink, fontSize:12, outline:'none', boxSizing:'border-box', lineHeight:1.5}} />
-          </div>
-          <div style={{marginBottom:8}}>
-            <label style={{fontSize:9.5, fontFamily:'ui-monospace, monospace', color:C.gold, letterSpacing:'0.15em', marginBottom:4, display:'block', textTransform:'uppercase'}}>→ 다음 주 한 가지 다르게 할 것</label>
-            <textarea value={review.nextWeek} onChange={e => update('nextWeek', e.target.value)} placeholder="딱 한 가지만. 작아도 OK." rows={2}
-              style={{width:'100%', padding:'9px 11px', background:'rgba(212,164,76,0.05)', border:`1px solid ${C.line}`, color:C.ink, fontSize:12, outline:'none', boxSizing:'border-box', lineHeight:1.5}} />
-          </div>
-          <p style={{fontSize:10.5, color:C.inkDim, lineHeight:1.5, fontStyle:'italic', fontFamily:'Georgia, serif', marginTop:8}}>"5분이면 충분합니다. 자동 저장돼요."</p>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function PastReviews({ reviews }) {
-  const sortedKeys = Object.keys(reviews).sort().reverse();
-  if (sortedKeys.length === 0) return null;
-  return (
-    <section style={{marginBottom:14}}>
-      <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, marginBottom:8, textTransform:'uppercase'}}>지난 회고</div>
-      {sortedKeys.slice(0, 4).map(key => {
-        const r = reviews[key];
-        if (!r.best && !r.hardest && !r.nextWeek) return null;
-        return (
-          <div key={key} style={{background:C.bg2, border:`1px solid ${C.line}`, borderLeft:`3px solid ${C.gold}`, padding:'12px 14px', marginBottom:6}}>
-            <div style={{fontFamily:'ui-monospace, monospace', fontSize:9.5, color:C.gold, letterSpacing:'0.15em', marginBottom:6, textTransform:'uppercase'}}>{key}</div>
-            {r.best && <div style={{fontSize:11.5, color:C.ink, marginBottom:4, paddingLeft:14, borderLeft:`2px solid ${C.sage}40`, lineHeight:1.5}}><span style={{color:C.sage, fontFamily:'ui-monospace, monospace', fontSize:9, marginRight:6}}>✓</span>{r.best}</div>}
-            {r.hardest && <div style={{fontSize:11.5, color:C.ink, marginBottom:4, paddingLeft:14, borderLeft:`2px solid ${C.rust}40`, lineHeight:1.5}}><span style={{color:C.rust, fontFamily:'ui-monospace, monospace', fontSize:9, marginRight:6}}>✗</span>{r.hardest}</div>}
-            {r.nextWeek && <div style={{fontSize:11.5, color:C.ink, paddingLeft:14, borderLeft:`2px solid ${C.gold}40`, lineHeight:1.5}}><span style={{color:C.gold, fontFamily:'ui-monospace, monospace', fontSize:9, marginRight:6}}>→</span>{r.nextWeek}</div>}
-          </div>
-        );
-      })}
-    </section>
-  );
-}
-
-function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, ptDone, updateToday, toggleAxis, setExerciseType, saveData, setActiveTab, isSunday }) {
-  return (
-    <div>
-      <div style={{padding:'10px 12px', background:'rgba(155,179,138,0.06)', borderLeft:`2px solid ${C.sage}`, fontSize:12, color:C.inkDim, lineHeight:1.5, marginBottom:14}}>
-        {dToStart > 0 ? <span>D-{dToStart} · 5/4(월) 시작까지. <b style={{color:C.ink}}>이번주는 평소대로 OK</b></span>
-          : dToStart === 0 ? <b style={{color:C.sage}}>오늘이 시작일! 21:30 책상에 앉기.</b>
-          : <span>D+{Math.abs(dToStart)+1} · 시작 {Math.abs(dToStart)+1}일째 · Level 0</span>}
-      </div>
-
-      {isSunday && <SundayReview data={data} saveData={saveData} isSunday={isSunday} />}
-
-      <section style={{background:C.bg2, border:`1px solid ${C.line}`, padding:'18px 16px', marginBottom:14}}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
-          <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, textTransform:'uppercase'}}>Today</div>
-          <span style={{fontSize:11, color:C.ink, fontStyle:'italic', fontFamily:'Georgia, serif'}}>오늘의 기록</span>
-        </div>
-
-        <div style={{marginBottom:12}}>
-          <div style={{fontFamily:'ui-monospace, monospace', fontSize:8.5, color:C.inkDim, letterSpacing:'0.2em', marginBottom:6, textTransform:'uppercase'}}>오늘 기분</div>
-          <div style={{display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:4}}>
-            {MOODS.map(m => {
-              const active = todayData.mood === m.v;
-              return (
-                <button key={m.v} onClick={() => updateToday({ mood: active ? null : m.v })} style={{
-                  background: active ? `${m.color}25` : 'rgba(255,255,255,0.02)',
-                  border: `1px solid ${active ? m.color : C.line}`,
-                  padding:'8px 4px', cursor:'pointer',
-                  display:'flex', flexDirection:'column', alignItems:'center', gap:2,
-                }}>
-                  <span style={{fontSize:18}}>{m.emoji}</span>
-                  <span style={{fontSize:9.5, color:active ? m.color : C.inkDim, fontWeight: active ? 700 : 500, letterSpacing:'0.05em'}}>{m.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div style={{marginBottom:12}}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}}>
-            <div style={{fontFamily:'ui-monospace, monospace', fontSize:8.5, color:C.inkDim, letterSpacing:'0.2em', textTransform:'uppercase'}}>학습 영역</div>
-            <button onClick={() => setActiveTab('manage')} style={{background:'transparent', border:'none', color:C.inkDim, fontSize:9.5, cursor:'pointer', fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em'}}>편집 →</button>
-          </div>
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:6}}>
-            {data.axes.map(ax => {
-              const active = todayData.axes.includes(ax.id);
-              return (
-                <button key={ax.id} onClick={() => toggleAxis(ax.id)} style={{
-                  background: active ? `${ax.color}20` : 'rgba(255,255,255,0.02)',
-                  border: `1px solid ${active ? ax.color : C.line}`,
-                  padding: '10px 11px', textAlign:'left', cursor:'pointer',
-                }}>
-                  <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:3}}>
-                    <Ic d={i[ax.icon]} size={11} color={active ? ax.color : C.inkDim} />
-                    <span style={{fontSize:10, fontWeight:700, color: active ? ax.color : C.inkDim, fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em'}}>{ax.label}</span>
-                  </div>
-                  <div style={{fontSize:10.5, color: active ? C.ink : C.inkDim, lineHeight:1.3}}>{ax.sub}</div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div style={{marginBottom:12}}>
-          <div style={{fontFamily:'ui-monospace, monospace', fontSize:8.5, color:C.inkDim, letterSpacing:'0.2em', marginBottom:5, textTransform:'uppercase'}}>운동 종류</div>
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:5}}>
-            {EXERCISE_TYPES.map(et => {
-              const active = todayData.exerciseType === et.id;
-              const isPt = et.id === 'pt';
-              const disabled = isPt && ptDone && !active;
-              return (
-                <button key={et.id} onClick={() => !disabled && setExerciseType(et.id)} disabled={disabled} style={{
-                  background: active ? `${et.color}25` : 'rgba(255,255,255,0.02)',
-                  border: `1px solid ${active ? et.color : C.line}`,
-                  padding: '8px 6px', cursor: disabled ? 'not-allowed' : 'pointer',
-                  display:'flex', flexDirection:'column', alignItems:'center', gap:3,
-                  opacity: disabled ? 0.4 : 1,
-                }}>
-                  <Ic d={i[et.icon]} size={14} color={active ? et.color : C.inkDim} />
-                  <span style={{fontSize:11, color: active ? et.color : C.inkDim, fontWeight: active ? 700 : 500, letterSpacing:'0.05em'}}>{et.label}{isPt && ` (${ptRemaining})`}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <button onClick={() => updateToday({ cafe: !todayData.cafe })} style={{
-          width:'100%', background: todayData.cafe ? `${C.rust}20` : 'rgba(255,255,255,0.02)',
-          border: `1px solid ${todayData.cafe ? C.rust : C.line}`,
-          padding: '8px 10px', cursor:'pointer',
-          display:'flex', alignItems:'center', gap:6, justifyContent:'center', marginBottom: 12,
-        }}>
-          <Ic d={i.coffee} size={12} color={todayData.cafe ? C.rust : C.inkDim} />
-          <span style={{fontSize:11, color: todayData.cafe ? C.rust : C.inkDim, fontWeight: todayData.cafe ? 700 : 500}}>카페 {todayData.cafe && '✓'}</span>
-        </button>
-
-        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12, padding:'8px 12px', background:'rgba(0,0,0,0.25)', border:`1px dashed ${C.line}`}}>
-          <div style={{display:'flex', alignItems:'center', gap:7}}>
-            <Ic d={i.moon} size={12} color={C.inkDim} />
-            <span style={{fontSize:11, color:C.inkDim}}>어젯밤 수면</span>
-          </div>
-          <div style={{display:'flex', alignItems:'center', gap:8}}>
-            <button onClick={() => updateToday({sleepHrs: Math.max(4, (todayData.sleepHrs ?? 8) - 0.5)})}
-              style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, width:24, height:22, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
-              <Ic d={i.minus} size={10} />
-            </button>
-            <span style={{fontSize:13, fontWeight:700, color: (todayData.sleepHrs ?? 8) >= 8 ? C.sage : C.gold, minWidth:36, textAlign:'center', fontFamily:'ui-monospace, monospace'}}>{todayData.sleepHrs ?? 8}h</span>
-            <button onClick={() => updateToday({sleepHrs: Math.min(12, (todayData.sleepHrs ?? 8) + 0.5)})}
-              style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, width:24, height:22, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
-              <Ic d={i.plus} size={10} />
-            </button>
-          </div>
-        </div>
-
-        <input type="text" value={todayData.note || ''} onChange={e => updateToday({ note: e.target.value })}
-          placeholder="한 줄 메모 (선택)"
-          style={{width:'100%', padding:'9px 11px', background:'rgba(0,0,0,0.25)', border:`1px solid ${C.line}`, color:C.ink, fontSize:12, outline:'none', boxSizing:'border-box', marginBottom:8}} />
-
-        <textarea value={todayData.journal || ''} onChange={e => updateToday({ journal: e.target.value })}
-          placeholder="오늘의 일기 — 자유롭게. 빈 칸이어도 OK."
-          rows={3}
-          style={{width:'100%', padding:'9px 11px', background:'rgba(0,0,0,0.25)', border:`1px solid ${C.line}`, color:C.ink, fontSize:12, outline:'none', boxSizing:'border-box', lineHeight:1.5}} />
-      </section>
-
-      {/* Daily Self-Question — 일기 다음에 자기 질문 */}
-      <DailySelfQuestion todayData={todayData} updateToday={updateToday} />
-
-      <section style={{background:C.bg2, border:`1px solid ${ptDone ? C.sage : C.gold}`, padding:'14px 16px', marginBottom:14, position:'relative', overflow:'hidden'}}>
-        <div style={{position:'absolute', top:0, left:0, right:0, height:3, background: ptDone ? C.sage : C.gold}} />
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:10}}>
-          <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color: ptDone ? C.sage : C.gold, textTransform:'uppercase', display:'flex', alignItems:'center', gap:5}}>
-            <Ic d={i.dumbbell} size={10} />PT 30회
-          </div>
-          <div style={{fontSize:18, fontWeight:700, color:ptDone ? C.sage : C.gold, fontFamily:'Georgia, serif', fontStyle:'italic'}}>
-            {ptCompleted}<span style={{fontSize:11, color:C.inkDim, fontStyle:'normal'}}>/{PT_CONFIG.total}</span>
-          </div>
-        </div>
-        <div style={{height:6, background:C.bg3, position:'relative', overflow:'hidden', marginBottom:6}}>
-          <div style={{position:'absolute', left:0, top:0, height:'100%', width: `${(PT_CONFIG.initialDone / PT_CONFIG.total) * 100}%`, background: C.slate, opacity:0.6}} />
-          <div style={{position:'absolute', left:`${(PT_CONFIG.initialDone / PT_CONFIG.total) * 100}%`, top:0, height:'100%', width: `${((ptCompleted - PT_CONFIG.initialDone) / PT_CONFIG.total) * 100}%`, background: C.gold, transition:'width 0.4s'}} />
-        </div>
-        <div style={{fontSize:10, color:C.inkDim, fontFamily:'ui-monospace, monospace', letterSpacing:'0.05em'}}>예상 종료 · {ptDone ? '완료 ✓' : fmt(PT_CONFIG.estimatedEnd)}</div>
-      </section>
-
-      <section style={{marginBottom:14}}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
-          <span style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, textTransform:'uppercase'}}>Books</span>
-          <button onClick={() => setActiveTab('manage')} style={{background:'transparent', border:'none', color:C.inkDim, fontSize:9.5, cursor:'pointer', fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em'}}>관리 →</button>
-        </div>
-        {data.books.map(book => {
-          const pct = Math.round((book.progress / book.total) * 100);
-          const axisColor = book.axis === 'I' ? C.rust : (book.axis === 'II' ? C.gold : C.teal);
-          return (
-            <div key={book.id} style={{background:C.bg2, border:`1px solid ${C.line}`, padding:'12px 14px', marginBottom:6}}>
-              <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10, marginBottom:8}}>
-                <div style={{flex:1, minWidth:0}}>
-                  <div style={{fontSize:8.5, fontFamily:'ui-monospace, monospace', color: axisColor, border:`1px solid ${axisColor}`, padding:'1px 5px', letterSpacing:'0.1em', fontWeight:600, display:'inline-block', marginBottom:3}}>AXIS {book.axis}</div>
-                  <div style={{fontSize:12.5, fontWeight:700, color:C.ink, lineHeight:1.3}}>{book.title}</div>
-                  <div style={{fontSize:10, color:C.inkDim}}>{book.author}</div>
-                </div>
-                <div style={{display:'flex', alignItems:'center', gap:5, flexShrink:0}}>
-                  <button onClick={() => saveData({...data, books: data.books.map(b => b.id === book.id ? {...b, progress: Math.max(0, b.progress - 10)} : b)})}
-                    style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, width:22, height:22, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}><Ic d={i.minus} size={9} /></button>
-                  <span style={{fontSize:10, color:C.inkDim, fontFamily:'ui-monospace, monospace', minWidth:48, textAlign:'center'}}>{book.progress}/{book.total}p</span>
-                  <button onClick={() => saveData({...data, books: data.books.map(b => b.id === book.id ? {...b, progress: Math.min(b.total, b.progress + 10)} : b)})}
-                    style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, width:22, height:22, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}><Ic d={i.plus} size={9} /></button>
-                </div>
-              </div>
-              <div style={{height:3, background:C.bg3, position:'relative', overflow:'hidden'}}>
-                <div style={{position:'absolute', left:0, top:0, height:'100%', width: `${pct}%`, background: axisColor, transition:'width 0.4s'}} />
-              </div>
-            </div>
-          );
-        })}
-      </section>
-    </div>
-  );
-}
-
-function AnalysisTab({ data, range, setRange, saveData, streaks }) {
-  const [openPhil, setOpenPhil] = useState(null);
-  const [openCodex, setOpenCodex] = useState(null);
-
-  const stats = computeStats(data.days, range);
-  const philosophy = analyzePhilosophically(stats);
-  const insights = generateInsights(stats);
-  const suggestions = generateGrowthSuggestions(stats);
-
-  return (
-    <div>
-      <SundayReview data={data} saveData={saveData} isSunday={false} forceShow={true} />
-      <MonthlyHeatmap days={data.days} axes={data.axes} />
-
-      <div style={{display:'flex', gap:6, marginBottom:14}}>
-        {[{id:'week',l:'이번 주'},{id:'month',l:'30일'},{id:'all',l:'전체'}].map(r => (
-          <button key={r.id} onClick={() => setRange(r.id)} style={{
-            flex:1, padding:'8px 10px',
-            background: range === r.id ? `${C.sage}20` : 'rgba(255,255,255,0.02)',
-            border: `1px solid ${range === r.id ? C.sage : C.line}`,
-            color: range === r.id ? C.sage : C.inkDim,
-            cursor:'pointer', fontSize:11,
-            fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em',
-          }}>{r.l}</button>
-        ))}
-      </div>
-
-      <section style={{display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:8, marginBottom:14}}>
-        <StatCard label="활동 일수" value={`${stats.activeDays}/${stats.totalDays}`} sub={`${Math.round((stats.activeDays/Math.max(stats.totalDays,1))*100)}%`} color={C.sage} />
-        <StatCard label="운동 일수" value={`${stats.exerciseDays}`} sub={`${stats.totalDays}일 중`} color={C.teal} />
-        <StatCard label="평균 수면" value={stats.sleepAvg ? `${stats.sleepAvg.toFixed(1)}h` : '—'} sub={stats.sleepAvg >= 7.5 ? '양호' : '부족'} color={stats.sleepAvg >= 7.5 ? C.sage : C.gold} />
-        <StatCard label="평균 기분" value={stats.moodAvg ? stats.moodAvg.toFixed(1) : '—'} sub="1~5 척도" color={C.gold} />
-        <StatCard label="최장 streak" value={`${streaks.longest}일`} sub="최고 기록" color={C.plum} />
-        <StatCard label="현재 활동" value={`${streaks.activity}일`} sub="진행 중" color={C.sage} />
-      </section>
-
-      {/* ===== Leader's Codex (3 cards) ===== */}
-      <section style={{marginBottom:14}}>
-        <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.gold, marginBottom:8, textTransform:'uppercase', display:'flex', alignItems:'center', gap:6}}>
-          <Ic d={i.crown} size={11} />Leader's Codex — 조언/가이드
-        </div>
-        <p style={{fontSize:11.5, color:C.inkDim, lineHeight:1.55, marginBottom:10, fontStyle:'italic', fontFamily:'Georgia, serif', padding:'0 2px'}}>
-          "지치지 않는 정교한 일상이 가장 날카로운 무기. 필요할 때 펼쳐 보세요."
-        </p>
-        {CODEX.map(entry => (
-          <CodexCard key={entry.id} entry={entry} openId={openCodex} setOpenId={setOpenCodex} />
-        ))}
-      </section>
-
-      <section style={{marginBottom:14}}>
-        <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, marginBottom:8, textTransform:'uppercase'}}>심층 인사이트</div>
-        {insights.map((ins, idx) => {
-          const colorMap = { strength: C.sage, caution: C.gold, suggest: C.teal, info: C.slate };
-          const c = colorMap[ins.type] || C.slate;
-          return (
-            <div key={idx} style={{background:C.bg2, border:`1px solid ${C.line}`, borderLeft:`3px solid ${c}`, padding:'12px 14px', marginBottom:6, display:'flex', gap:10, alignItems:'flex-start'}}>
-              <Ic d={i[ins.icon]} size={14} color={c} />
-              <span style={{fontSize:12.5, color:C.ink, lineHeight:1.55}}>{ins.text}</span>
-            </div>
-          );
-        })}
-      </section>
-
-      <section style={{marginBottom:14}}>
-        <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, marginBottom:8, textTransform:'uppercase', display:'flex', alignItems:'center', gap:6}}>
-          <Ic d={i.brain} size={11} />철학적 다차원 분석
-        </div>
-        {Object.values(philosophy).map(p => {
-          const isOpen = openPhil === p.philosopher.id;
-          return (
-            <div key={p.philosopher.id} style={{background:C.bg2, border:`1px solid ${C.line}`, marginBottom:6, overflow:'hidden'}}>
-              <button onClick={() => setOpenPhil(isOpen ? null : p.philosopher.id)} style={{
-                width:'100%', padding:'14px 16px',
-                background:'transparent', border:'none', cursor:'pointer',
-                display:'flex', justifyContent:'space-between', alignItems:'center',
-                textAlign:'left', borderLeft:`3px solid ${p.philosopher.color}`,
-              }}>
-                <div style={{flex:1, minWidth:0}}>
-                  <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:4, flexWrap:'wrap'}}>
-                    <span style={{fontSize:13, fontWeight:700, color:C.ink, fontFamily:'Georgia, serif', fontStyle:'italic'}}>{p.philosopher.name}</span>
-                    <span style={{fontSize:9, fontFamily:'ui-monospace, monospace', color:p.philosopher.color, letterSpacing:'0.1em'}}>{p.philosopher.subtitle}</span>
-                  </div>
-                  <div style={{fontSize:10.5, color:C.inkDim, fontStyle:'italic', fontFamily:'Georgia, serif', lineHeight:1.4}}>{p.philosopher.motto}</div>
-                </div>
-                <Ic d={i.chevronRight} size={14} color={C.inkDim} />
-              </button>
-              {isOpen && (
-                <div style={{padding:'0 16px 16px 16px', borderTop:`1px solid ${C.line}`, paddingTop:12}}>
-                  <p style={{fontSize:12.5, color:C.ink, lineHeight:1.7}}>{p.text}</p>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </section>
-
-      <section style={{marginBottom:14}}>
-        <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, marginBottom:8, textTransform:'uppercase'}}>성장을 위한 제안</div>
-        {suggestions.map((s, idx) => {
-          const pColor = s.priority === 1 ? C.rust : (s.priority === 2 ? C.gold : C.sage);
-          return (
-            <div key={idx} style={{background:C.bg2, border:`1px solid ${C.line}`, padding:'14px 16px', marginBottom:6, position:'relative', overflow:'hidden'}}>
-              <div style={{position:'absolute', top:0, left:0, bottom:0, width:3, background:pColor}} />
-              <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6, gap:10}}>
-                <h4 style={{fontSize:13, fontWeight:700, color:C.ink, fontFamily:'Georgia, serif', fontStyle:'italic'}}>{s.title}</h4>
-                <span style={{fontSize:8.5, fontFamily:'ui-monospace, monospace', color:pColor, letterSpacing:'0.15em', flexShrink:0, padding:'2px 6px', border:`1px solid ${pColor}`}}>P{s.priority}</span>
-              </div>
-              <p style={{fontSize:11.5, color:C.inkDim, lineHeight:1.6}}>{s.body}</p>
-            </div>
-          );
-        })}
-      </section>
-
-      <PastReviews reviews={data.weeklyReviews || {}} />
-
-      <div style={{padding:'12px 14px', background:'rgba(155,179,138,0.04)', borderLeft:`2px solid ${C.sage}`, fontSize:10.5, color:C.inkDim, lineHeight:1.55, marginBottom:14}}>
-        <b style={{color:C.sage, fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase'}}>NOTE</b>
-        <p style={{marginTop:4}}>이 분석은 입력 데이터 패턴 기반입니다. 진짜 AI 분석을 원하면 추후 API 연결 가능 (별도 비용).</p>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ label, value, sub, color }) {
-  return (
-    <div style={{background:C.bg2, border:`1px solid ${C.line}`, padding:'12px 14px', position:'relative', overflow:'hidden'}}>
-      <div style={{position:'absolute', top:0, left:0, right:0, height:2, background:color}} />
-      <div style={{fontFamily:'ui-monospace, monospace', fontSize:8.5, color:C.inkDim, letterSpacing:'0.15em', marginBottom:4, textTransform:'uppercase'}}>{label}</div>
-      <div style={{fontSize:20, fontWeight:700, color:color, fontFamily:'Georgia, serif', fontStyle:'italic', lineHeight:1}}>{value}</div>
-      <div style={{fontSize:9.5, color:C.inkDim, marginTop:3, fontFamily:'ui-monospace, monospace'}}>{sub}</div>
-    </div>
-  );
-}
-
-function ManageTab({ data, saveData, setModal, modal }) {
-  const exportData = () => {
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `tracker-${todayStr()}.json`;
-    a.click(); URL.revokeObjectURL(url);
-  };
-  const importData = (e) => {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const imported = JSON.parse(event.target.result);
-        if (window.confirm('현재 데이터를 가져온 데이터로 덮어쓰시겠어요?')) {
-          saveData({ ...initialData(), ...imported });
-        }
-      } catch { alert('파일 형식 오류'); }
-    };
-    reader.readAsText(file);
-  };
-
-  const addAxis = () => {
-    const newAxis = { id: 'axis_' + uid(), label: '새 항목', sub: '설명', color: C.sage, icon: 'sparkles' };
-    saveData({ ...data, axes: [...data.axes, newAxis] });
-    setModal({ type: 'axis', id: newAxis.id });
-  };
-  const deleteAxis = (id) => { if (window.confirm('이 항목을 삭제하시겠어요?')) saveData({ ...data, axes: data.axes.filter(a => a.id !== id) }); };
-  const updateAxis = (id, patch) => saveData({ ...data, axes: data.axes.map(a => a.id === id ? { ...a, ...patch } : a) });
-  const addBook = () => {
-    const newBook = { id: 'book_' + uid(), title: '새 책', author: '저자', axis: 'I', progress: 0, total: 200 };
-    saveData({ ...data, books: [...data.books, newBook] });
-    setModal({ type: 'book', id: newBook.id });
-  };
-  const deleteBook = (id) => { if (window.confirm('이 책을 삭제하시겠어요?')) saveData({ ...data, books: data.books.filter(b => b.id !== id) }); };
-  const updateBook = (id, patch) => saveData({ ...data, books: data.books.map(b => b.id === id ? { ...b, ...patch } : b) });
-  const addTask = () => {
-    const newTask = { id: 'task_' + uid(), week: 1, label: '새 task' };
-    saveData({ ...data, guideTasks: [...data.guideTasks, newTask] });
-    setModal({ type: 'task', id: newTask.id });
-  };
-  const deleteTask = (id) => {
-    if (window.confirm('삭제하시겠어요?')) {
-      const newDone = { ...data.guideTasksDone }; delete newDone[id];
-      saveData({ ...data, guideTasks: data.guideTasks.filter(t => t.id !== id), guideTasksDone: newDone });
-    }
-  };
-  const updateTask = (id, patch) => saveData({ ...data, guideTasks: data.guideTasks.map(t => t.id === id ? { ...t, ...patch } : t) });
-
-  const editingAxis = modal?.type === 'axis' ? data.axes.find(a => a.id === modal.id) : null;
-  const editingBook = modal?.type === 'book' ? data.books.find(b => b.id === modal.id) : null;
-  const editingTask = modal?.type === 'task' ? data.guideTasks.find(t => t.id === modal.id) : null;
-
-  return (
-    <div>
-      <section style={{background:C.bg2, border:`1px solid ${C.line}`, padding:16, marginBottom:14}}>
-        <div style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, marginBottom:10, textTransform:'uppercase'}}>백업 · 동기화</div>
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8}}>
-          <button onClick={exportData} style={{padding:'10px 12px', background:'rgba(74,139,139,0.15)', border:`1px solid ${C.teal}`, color:C.teal, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6, fontSize:11, fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em'}}>
-            <Ic d={i.download} size={12} />Export
-          </button>
-          <label style={{padding:'10px 12px', background:'rgba(212,164,76,0.15)', border:`1px solid ${C.gold}`, color:C.gold, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6, fontSize:11, fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em'}}>
-            <Ic d={i.upload} size={12} />Import
-            <input type="file" accept=".json" onChange={importData} style={{display:'none'}} />
-          </label>
-        </div>
-        <p style={{fontSize:10.5, color:C.inkDim, lineHeight:1.5, marginTop:10}}>Export로 데이터를 JSON 파일로 저장. <b style={{color:C.ink}}>월 1회 백업 권장.</b></p>
-      </section>
-
-      <section style={{marginBottom:14}}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
-          <span style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, textTransform:'uppercase'}}>학습 영역</span>
-          <button onClick={addAxis} style={{padding:'4px 10px', background:`${C.sage}20`, border:`1px solid ${C.sage}`, color:C.sage, cursor:'pointer', fontSize:10, fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em', display:'flex', alignItems:'center', gap:4}}>
-            <Ic d={i.plus} size={9} />추가
-          </button>
-        </div>
-        {data.axes.map(ax => (
-          <div key={ax.id} style={{background:C.bg2, border:`1px solid ${C.line}`, borderLeft:`3px solid ${ax.color}`, padding:'12px 14px', marginBottom:5, display:'flex', justifyContent:'space-between', alignItems:'center', gap:8}}>
-            <div style={{flex:1, minWidth:0, display:'flex', alignItems:'center', gap:10}}>
-              <Ic d={i[ax.icon]} size={14} color={ax.color} />
-              <div>
-                <div style={{fontSize:12.5, color:C.ink, fontWeight:700}}>{ax.label}</div>
-                <div style={{fontSize:10, color:C.inkDim}}>{ax.sub}</div>
-              </div>
-            </div>
-            <div style={{display:'flex', gap:4}}>
-              <button onClick={() => setModal({type:'axis', id:ax.id})} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, padding:5, cursor:'pointer', display:'flex'}}><Ic d={i.edit} size={11} /></button>
-              <button onClick={() => deleteAxis(ax.id)} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.rust, padding:5, cursor:'pointer', display:'flex'}}><Ic d={i.trash} size={11} /></button>
-            </div>
-          </div>
-        ))}
-      </section>
-
-      <section style={{marginBottom:14}}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
-          <span style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, textTransform:'uppercase'}}>책 관리</span>
-          <button onClick={addBook} style={{padding:'4px 10px', background:`${C.sage}20`, border:`1px solid ${C.sage}`, color:C.sage, cursor:'pointer', fontSize:10, fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em', display:'flex', alignItems:'center', gap:4}}>
-            <Ic d={i.plus} size={9} />추가
-          </button>
-        </div>
-        {data.books.map(book => (
-          <div key={book.id} style={{background:C.bg2, border:`1px solid ${C.line}`, padding:'10px 14px', marginBottom:5, display:'flex', justifyContent:'space-between', alignItems:'center', gap:8}}>
-            <div style={{flex:1, minWidth:0}}>
-              <div style={{fontSize:12, color:C.ink, fontWeight:700, marginBottom:2}}>{book.title}</div>
-              <div style={{fontSize:10, color:C.inkDim}}>{book.author} · Axis {book.axis} · {book.progress}/{book.total}p</div>
-            </div>
-            <div style={{display:'flex', gap:4, flexShrink:0}}>
-              <button onClick={() => setModal({type:'book', id:book.id})} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, padding:5, cursor:'pointer', display:'flex'}}><Ic d={i.edit} size={11} /></button>
-              <button onClick={() => deleteBook(book.id)} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.rust, padding:5, cursor:'pointer', display:'flex'}}><Ic d={i.trash} size={11} /></button>
-            </div>
-          </div>
-        ))}
-      </section>
-
-      <section style={{marginBottom:14}}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
-          <span style={{fontFamily:'ui-monospace, monospace', fontSize:9, letterSpacing:'0.25em', color:C.sage, textTransform:'uppercase'}}>가이드 Tasks</span>
-          <button onClick={addTask} style={{padding:'4px 10px', background:`${C.sage}20`, border:`1px solid ${C.sage}`, color:C.sage, cursor:'pointer', fontSize:10, fontFamily:'ui-monospace, monospace', letterSpacing:'0.1em', display:'flex', alignItems:'center', gap:4}}>
-            <Ic d={i.plus} size={9} />추가
-          </button>
-        </div>
-        {[1,2,3,4,5].map(week => {
-          const weekTasks = data.guideTasks.filter(t => t.week === week);
-          if (weekTasks.length === 0) return null;
-          return (
-            <div key={week} style={{marginBottom:8}}>
-              <div style={{fontSize:9.5, fontFamily:'ui-monospace, monospace', color:C.sage, letterSpacing:'0.2em', marginBottom:4, textTransform:'uppercase', opacity:0.7}}>Week {week}</div>
-              {weekTasks.map(t => {
-                const done = !!data.guideTasksDone[t.id];
-                return (
-                  <div key={t.id} style={{background:C.bg2, border:`1px solid ${C.line}`, padding:'8px 12px', marginBottom:3, display:'flex', justifyContent:'space-between', alignItems:'center', gap:8}}>
-                    <button onClick={() => saveData({...data, guideTasksDone: {...data.guideTasksDone, [t.id]: !done}})} style={{
-                      width:14, height:14,
-                      border: `1px solid ${done ? C.sage : C.line}`,
-                      background: done ? C.sage : 'transparent',
-                      cursor:'pointer', flexShrink:0,
-                      display:'flex', alignItems:'center', justifyContent:'center'
-                    }}>{done && <Ic d={i.check} size={9} color={C.bg} strokeWidth={3} />}</button>
-                    <span style={{flex:1, fontSize:11, color: done ? C.inkDim : C.ink, textDecoration: done ? 'line-through' : 'none', lineHeight:1.4}}>{t.label}</span>
-                    <div style={{display:'flex', gap:3, flexShrink:0}}>
-                      <button onClick={() => setModal({type:'task', id:t.id})} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.inkDim, padding:4, cursor:'pointer', display:'flex'}}><Ic d={i.edit} size={9} /></button>
-                      <button onClick={() => deleteTask(t.id)} style={{background:'transparent', border:`1px solid ${C.line}`, color:C.rust, padding:4, cursor:'pointer', display:'flex'}}><Ic d={i.trash} size={9} /></button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
-      </section>
-
-      <section style={{marginBottom:14}}>
-        <button onClick={() => {
-          if (window.confirm('모든 데이터를 초기화하시겠어요? Export 백업 먼저 권장.')) saveData(initialData());
-        }} style={{width:'100%', padding:'10px', background:'rgba(199,86,64,0.1)', border:`1px solid ${C.rust}`, color:C.rust, cursor:'pointer', fontSize:10.5, fontFamily:'ui-monospace, monospace', letterSpacing:'0.15em', display:'flex', alignItems:'center', justifyContent:'center', gap:6, textTransform:'uppercase'}}>
-          <Ic d={i.rotate} size={11} />전체 초기화
-        </button>
-      </section>
-
-      <Modal open={!!editingAxis} onClose={() => setModal(null)} title="Edit Axis">
-        {editingAxis && <AxisEditor axis={editingAxis} onUpdate={(patch) => updateAxis(editingAxis.id, patch)} />}
-      </Modal>
-      <Modal open={!!editingBook} onClose={() => setModal(null)} title="Edit Book">
-        {editingBook && <BookEditor book={editingBook} onUpdate={(patch) => updateBook(editingBook.id, patch)} />}
-      </Modal>
-      <Modal open={!!editingTask} onClose={() => setModal(null)} title="Edit Task">
-        {editingTask && <TaskEditor task={editingTask} onUpdate={(patch) => updateTask(editingTask.id, patch)} />}
-      </Modal>
-    </div>
-  );
-}
-
-const inputStyle = { width:'100%', padding:'8px 10px', background:'rgba(0,0,0,0.25)', border:`1px solid ${C.line}`, color:C.ink, fontSize:12, outline:'none', boxSizing:'border-box', marginBottom:10 };
-const labelStyle = { fontSize:9.5, fontFamily:'ui-monospace, monospace', color:C.inkDim, letterSpacing:'0.15em', marginBottom:4, display:'block', textTransform:'uppercase' };
-
-function AxisEditor({ axis, onUpdate }) {
-  return (
-    <div>
-      <label style={labelStyle}>이름</label>
-      <input style={inputStyle} value={axis.label} onChange={e => onUpdate({ label: e.target.value })} />
-      <label style={labelStyle}>설명</label>
-      <input style={inputStyle} value={axis.sub} onChange={e => onUpdate({ sub: e.target.value })} />
-      <label style={labelStyle}>아이콘</label>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(6, 1fr)', gap:5, marginBottom:10}}>
-        {ICON_OPTIONS.map(iname => (
-          <button key={iname} onClick={() => onUpdate({ icon: iname })} style={{
-            padding:8, background: axis.icon === iname ? `${axis.color}30` : 'rgba(0,0,0,0.25)',
-            border:`1px solid ${axis.icon === iname ? axis.color : C.line}`,
-            cursor:'pointer', display:'flex', justifyContent:'center', alignItems:'center'
-          }}>
-            <Ic d={i[iname]} size={14} color={axis.icon === iname ? axis.color : C.inkDim} />
-          </button>
-        ))}
-      </div>
-      <label style={labelStyle}>색상</label>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(6, 1fr)', gap:5}}>
-        {COLOR_OPTIONS.map(c => (
-          <button key={c} onClick={() => onUpdate({ color: c })} style={{
-            height:30, background: c, opacity: axis.color === c ? 1 : 0.5,
-            border:`2px solid ${axis.color === c ? C.ink : 'transparent'}`,
-            cursor:'pointer'
-          }} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function BookEditor({ book, onUpdate }) {
-  return (
-    <div>
-      <label style={labelStyle}>제목</label>
-      <input style={inputStyle} value={book.title} onChange={e => onUpdate({ title: e.target.value })} />
-      <label style={labelStyle}>저자</label>
-      <input style={inputStyle} value={book.author} onChange={e => onUpdate({ author: e.target.value })} />
-      <label style={labelStyle}>Axis</label>
-      <select value={book.axis} onChange={e => onUpdate({ axis: e.target.value })} style={inputStyle}>
-        <option value="I">I (지경학+사회과학)</option>
-        <option value="II">II (에너지경제학)</option>
-        <option value="III">III</option>
-        <option value="IV">IV</option>
-      </select>
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8}}>
-        <div>
-          <label style={labelStyle}>현재</label>
-          <input type="number" style={inputStyle} value={book.progress} onChange={e => onUpdate({ progress: parseInt(e.target.value) || 0 })} />
-        </div>
-        <div>
-          <label style={labelStyle}>총 페이지</label>
-          <input type="number" style={inputStyle} value={book.total} onChange={e => onUpdate({ total: parseInt(e.target.value) || 1 })} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TaskEditor({ task, onUpdate }) {
-  return (
-    <div>
-      <label style={labelStyle}>주차 (1~5)</label>
-      <input type="number" min="1" max="5" style={inputStyle} value={task.week} onChange={e => onUpdate({ week: parseInt(e.target.value) || 1 })} />
-      <label style={labelStyle}>내용</label>
-      <textarea style={{...inputStyle, minHeight:60, resize:'vertical'}} value={task.label} onChange={e => onUpdate({ label: e.target.value })} />
     </div>
   );
 }

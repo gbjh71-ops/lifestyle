@@ -305,10 +305,11 @@ const DEFAULT_AXES = [
   { id: 'book', label: 'Book', sub: '자유 독서', color: C.plum, icon: 'file' },
 ];
 
-const EXERCISE_TYPES = [
+const DEFAULT_EXERCISE_TYPES = [
   { id: 'pt', label: 'PT', icon: 'dumbbell', color: C.gold },
   { id: 'run', label: '러닝', icon: 'footprints', color: C.teal },
-  { id: 'other', label: '기타', icon: 'more', color: C.sage },
+  { id: 'walk', label: '산책', icon: 'footprints', color: C.sage },
+  { id: 'other', label: '기타', icon: 'more', color: C.slate },
 ];
 
 const MOODS = [
@@ -322,41 +323,161 @@ const MOODS = [
 const ICON_OPTIONS = ['sparkles','book','wrench','file','dumbbell','footprints','coffee','brain','pen','bar','home'];
 const COLOR_OPTIONS = [C.rust, C.gold, C.teal, C.sage, C.plum, C.slate];
 
-const CODEX = [
-  {
-    id: 'sovereign', title: '지배자의 루틴', subtitle: '수동적 능동성을 경계하라',
-    icon: 'crown', color: C.gold,
-    intro: '남들이 시키는 일을 열심히 하는 것은 \'수동적 능동성\'일 뿐. 당신의 루틴은 스스로 설계한 것이어야 한다.',
-    motto: '"일반적인 잣대는 일반인에게나 적용하라. 나는 나만의 궤도를 달리는 1%다."',
-    practices: [
-      '퇴근 후의 시간은 \'휴식\'이 아니라 \'제2의 출근\'이다. 에너지를 분산시키지 말고 목표에 집중 투하하라.',
-      '주변의 나태함에 전염되지 마라. 사자는 들개와 섞이지 않으며, 오직 자신의 사냥감(목표)만 응시한다.',
-      '"왜?"라는 질문을 멈추지 마라. 시스템에 길들여지는 순간, 개척자의 생명은 끝난다.',
-    ]
-  },
-  {
-    id: 'restraint', title: '절제의 미학', subtitle: '성취 끝에 오는 고귀한 낭만',
-    icon: 'scale', color: C.plum,
-    intro: '단순한 참음이 아니라, 더 큰 가치를 위해 오늘의 에너지를 아끼고 벼리는 과정이다.',
-    motto: '"감성은 구걸하는 것이 아니라, 압도적인 성취 끝에 절로 배어 나오는 품격이다."',
-    practices: [
-      '노래 가사를 곱씹듯, 오늘 내가 짠 코드 한 줄과 분석한 데이터 한 줄의 의미를 명확히 하라.',
-      '불필요한 관계와 소음에 에너지를 낭비하지 마라. 그 에너지는 오직 \'진짜 환상\'을 만드는 데 써야 한다.',
-      '오늘의 절제는 미래의 나에게 주는 가장 고귀한 선물이다.',
-    ]
-  },
-  {
-    id: 'leader', title: '리더의 실행', subtitle: '결과로 증명하는 압도적 실력',
-    icon: 'target', color: C.rust,
-    intro: '부족함을 인정하는 것은 겸손이 아니라, 더 강력해지기 위한 전략적 판단이다.',
-    motto: '"나무조차 바위를 뚫고 뿌리를 내린다. 환경을 탓하는 것은 리더의 언어가 아니다."',
-    practices: [
-      '데이터와 실력으로 말하라. 리더의 권위는 입이 아니라 결과에서 나온다.',
-      '일 년 반의 장기 플랜은 하루하루의 정밀한 실행이 모여 완성된다. 오차 범위를 허용하지 마라.',
-      '누군가에게 \'아름다운 이정표\'가 될 수 있도록, 오늘 당신의 뒷모습에 책임을 다하라.',
-    ]
-  },
-];
+// ===== DYNAMIC CODEX — yesterday's data → today's alert =====
+function generateDynamicCodex(yesterdayData, axes) {
+  const y = yesterdayData || {};
+  const axesDone = y.axes || [];
+  const exerciseDone = Array.isArray(y.exerciseTypes) ? y.exerciseTypes : (y.exerciseType ? [y.exerciseType] : []);
+  const sleep = y.sleepHrs ?? null;
+  const mood = y.mood ?? null;
+  const hasJournal = (y.journal && y.journal.trim()) || (y.note && y.note.trim());
+  const selfQ = y.selfQ || {};
+  const hasData = axesDone.length > 0 || exerciseDone.length > 0 || sleep !== null;
+
+  // ── Card 1: 지배자의 루틴 (Agency / Axes / Main work) ──
+  let sovereign;
+  if (!hasData) {
+    sovereign = {
+      status: 'neutral',
+      badge: '⚡ 첫날',
+      message: '아직 데이터가 없어요. 오늘부터 기록이 쌓이면 어제의 당신이 오늘을 깨웁니다.',
+      challenge: '오늘 학습 영역 하나만 체크해보세요 — 그게 전부입니다.',
+      color: C.gold,
+    };
+  } else if (axesDone.length === 0) {
+    sovereign = {
+      status: 'warn',
+      badge: '🔴 어제 공백',
+      message: `어제 학습 기록이 없었습니다. 바쁜 하루였을 수도 있지만, 수동적 능동성과 진짜 공백은 다릅니다.`,
+      challenge: '오늘은 단 20분이라도 Axis 하나를 열어놓으세요. 시작이 전부입니다.',
+      color: C.rust,
+    };
+  } else if (axesDone.length >= 3) {
+    sovereign = {
+      status: 'strong',
+      badge: '🏆 어제 풀가동',
+      message: `어제 ${axesDone.length}개 Axis(${axesDone.map(id => axes.find(a=>a.id===id)?.label||id).join(', ')})를 모두 소화했습니다. 이게 1%의 밀도입니다.`,
+      challenge: '오늘도 같은 수준을 유지하되, 하나의 Axis에 더 깊이 파고들어보세요.',
+      color: C.sage,
+    };
+  } else {
+    const doneLabels = axesDone.map(id => axes.find(a=>a.id===id)?.label||id).join(', ');
+    const agencyQ = selfQ.q_agency;
+    sovereign = {
+      status: agencyQ === 'yes' ? 'good' : agencyQ === 'no' ? 'caution' : 'ok',
+      badge: agencyQ === 'no' ? '⚠️ 주체성 점검' : '✅ 루틴 진행',
+      message: `어제 ${doneLabels} 완료. ${agencyQ === 'no' ? '하지만 어제 스스로 주체성 부족을 인정했습니다. 오늘은 남의 의제가 아닌 내 의제 먼저.' : agencyQ === 'yes' ? '어제 스스로 주체적으로 움직였다고 평가했어요 — 그 감각을 오늘도 유지하세요.' : ''}`,
+      challenge: `오늘 ${axes.filter(a=>!axesDone.includes(a.id))[0]?.label || '새 Axis'}에도 시간을 배분해보세요.`,
+      color: agencyQ === 'no' ? C.gold : C.teal,
+    };
+  }
+
+  // ── Card 2: 절제의 미학 (Sleep / Mood / Balance) ──
+  let restraint;
+  if (!hasData) {
+    restraint = {
+      status: 'neutral',
+      badge: '💫 설정 필요',
+      message: '수면과 기분을 기록하면 절제의 패턴이 보입니다. 숫자가 아닌 패턴을 읽는 것이 핵심.',
+      challenge: '오늘 밤 잠들기 전 수면 시간과 기분만 기록해보세요.',
+      color: C.plum,
+    };
+  } else {
+    const sleepOk = sleep === null ? null : sleep >= 7.5;
+    const moodLow = mood !== null && mood <= 2;
+    const moodHigh = mood !== null && mood >= 4;
+    const densityQ = selfQ.q_density;
+
+    if (sleep !== null && sleep < 6.5) {
+      restraint = {
+        status: 'warn',
+        badge: `🔴 수면 부족 ${sleep}h`,
+        message: `어제 ${sleep}시간 수면 — 위험 수준입니다. 수면 부채는 다음 날 집중력과 의지력을 동시에 앗아갑니다. 절제를 실천할 에너지 자체가 부족한 상태.`,
+        challenge: '오늘 밤 23:00 취침을 지금 당장 캘린더에 블록하세요. 절제의 첫 번째는 수면입니다.',
+        color: C.rust,
+      };
+    } else if (moodLow) {
+      restraint = {
+        status: 'caution',
+        badge: `${['😔','😐'][mood-1] || '😐'} 어제 컨디션 저조`,
+        message: `어제 기분이 ${['힘들었어요','저조했어요'][mood-1]||'낮았어요'}. 컨디션이 낮을 때 절제는 더 어렵습니다. 하지만 그 날에 한 선택 하나가 패턴을 만들어요.`,
+        challenge: densityQ === 'no' ? '오늘은 밀도보다 안정성에 집중하세요. 70%로도 충분합니다.' : '지금 이 순간, 가장 작은 행동 하나만 선택하세요.',
+        color: C.plum,
+      };
+    } else if (sleepOk && moodHigh) {
+      restraint = {
+        status: 'strong',
+        badge: `✨ 최상 컨디션`,
+        message: `수면 ${sleep}h + 기분 ${['','힘듦','저조','보통','좋음','최고'][mood]}. 이런 날이 가장 위험합니다 — 과잉 소비의 유혹. 좋은 에너지일수록 더 정밀하게 써야 합니다.`,
+        challenge: '오늘 여유 에너지를 소음에 쓰지 마세요. 가장 중요한 Axis에 몰아넣으세요.',
+        color: C.sage,
+      };
+    } else {
+      restraint = {
+        status: 'ok',
+        badge: sleep ? `🌙 수면 ${sleep}h` : '😌 어제 기록',
+        message: `${sleep ? `수면 ${sleep}h — ${sleepOk ? '충분합니다' : '조금 부족해요'}. ` : ''}${densityQ === 'partial' ? '어제 밀도가 반쯤이었다고 평가했어요 — 어떤 순간이 그랬는지 생각해보면 패턴이 보입니다.' : '어제의 절제가 오늘의 에너지를 만듭니다.'}`,
+        challenge: '수면 8시간 목표 — 오늘 취침 시간을 정하세요.',
+        color: C.teal,
+      };
+    }
+  }
+
+  // ── Card 3: 리더의 실행 (Exercise / Journal / Results) ──
+  let leader;
+  if (!hasData) {
+    leader = {
+      status: 'neutral',
+      badge: '📍 기록 시작',
+      message: '실행은 기록에서 시작됩니다. 데이터 없이는 패턴도, 피드백도 없습니다.',
+      challenge: '오늘 운동 여부와 저녁 한 줄 메모 — 이것만으로도 리더의 실행이 시작됩니다.',
+      color: C.rust,
+    };
+  } else {
+    const hasExercise = exerciseDone.length > 0;
+    const valueQ = selfQ.q_value;
+
+    if (hasExercise && hasJournal) {
+      leader = {
+        status: 'strong',
+        badge: '🎯 어제 완전 실행',
+        message: `운동(${exerciseDone.join('+')}) + 기록 모두 완료. ${valueQ === 'yes' ? '스스로도 어제가 목표에 기여했다고 평가했어요. 이 감각을 기억하세요 — 오늘의 행동을 선택하는 기준이 됩니다.' : '결과는 분명했지만, 의미 연결은 아직 진행 중입니다. 오늘 한 줄 — "왜 이걸 하는가"를 적어보세요.'}`,
+        challenge: '오늘도 같은 실행. 단 한 가지 더 — 일기에 "이 행동이 1년 후 나에게 무엇을 줄까"를 적어보세요.',
+        color: C.sage,
+      };
+    } else if (!hasExercise && !hasJournal) {
+      leader = {
+        status: 'warn',
+        badge: '🔴 어제 실행 없음',
+        message: `어제 운동도, 기록도 없었습니다. 리더의 권위는 입이 아니라 결과에서 나옵니다. 하루 공백은 괜찮지만 패턴이 되면 안 됩니다.`,
+        challenge: valueQ === 'no' ? '어제 스스로도 인정했습니다. 오늘 15분 운동 + 한 줄 일기. 작아도 됩니다. 시작이 전부입니다.' : '오늘 저녁 한 가지 실행을 지금 정하세요. 계획 없는 실행은 없습니다.',
+        color: C.rust,
+      };
+    } else if (hasExercise && !hasJournal) {
+      leader = {
+        status: 'good',
+        badge: `💪 운동 완료`,
+        message: `어제 ${exerciseDone.join('+')} 완료 — 몸은 움직였습니다. 하지만 기록 없는 실행은 절반입니다. 패턴은 반드시 기록을 통해 강화됩니다.`,
+        challenge: '오늘은 운동 후 딱 한 줄: "오늘 이걸 했다"만 적으세요. 그게 리더의 데이터입니다.',
+        color: C.teal,
+      };
+    } else {
+      leader = {
+        status: 'ok',
+        badge: '📝 기록 있음',
+        message: `어제 일기/메모는 남겼지만 운동이 없었습니다. 정신은 점검했지만 신체는 쉬었어요.`,
+        challenge: '오늘 15분이라도 몸을 움직이세요. 신체와 정신이 함께 작동할 때 최고 퍼포먼스가 나옵니다.',
+        color: C.gold,
+      };
+    }
+  }
+
+  return [
+    { id:'sovereign', title:'지배자의 루틴', subtitle:sovereign.badge, icon:'crown', color:sovereign.color, data:sovereign },
+    { id:'restraint', title:'절제의 미학', subtitle:restraint.badge, icon:'scale', color:restraint.color, data:restraint },
+    { id:'leader', title:'리더의 실행', subtitle:leader.badge, icon:'target', color:leader.color, data:leader },
+  ];
+}
 
 const SELF_QUESTIONS = [
   { id: 'q_agency', dim: '주체성', q: '오늘 나는 남이 정해준 길을 갔는가, 내가 만든 길을 확장했는가?', color: C.gold },
@@ -461,7 +582,7 @@ function computeStats(days, range) {
   const totalDays = range === 'week' ? 7 : (range === 'month' ? 30 : Math.max(targetDates.length, 1));
   const targetData = targetDates.map(d => days[d]).filter(Boolean);
   const activeDays = targetData.filter(d => d.axes && d.axes.length > 0).length;
-  const exerciseDays = targetData.filter(d => d.exerciseType).length;
+  const exerciseDays = targetData.filter(d => d.exerciseType || (d.exerciseTypes && d.exerciseTypes.length > 0)).length;
   const journalDays = targetData.filter(d => (d.note && d.note.trim()) || (d.journal && d.journal.trim())).length;
   const sleeps = targetData.filter(d => d.sleepHrs).map(d => d.sleepHrs);
   const sleepAvg = sleeps.length ? sleeps.reduce((a,b) => a+b, 0) / sleeps.length : null;
@@ -482,6 +603,7 @@ const initialData = () => ({
   startDate: '2026-05-04',
   days: {},
   axes: DEFAULT_AXES,
+  exerciseTypes: DEFAULT_EXERCISE_TYPES,
   books: [
     { id: 'leonard', title: 'The Age of Unpeace', author: 'Mark Leonard', axis: 'I', progress: 0, total: 250 },
     { id: 'iea', title: 'IEA WEO Exec Summary', author: 'IEA', axis: 'II', progress: 0, total: 30 }
@@ -715,9 +837,12 @@ function DailySelfQuestion({ todayData, updateToday }) {
   );
 }
 
-// ===== CODEX CARD =====
+// ===== DYNAMIC CODEX CARD =====
 function CodexCard({ entry, openId, setOpenId }) {
   const isOpen = openId === entry.id;
+  const d = entry.data;
+  const statusColors = { strong: C.sage, good: C.teal, ok: C.gold, caution: C.gold, warn: C.rust, neutral: C.slate };
+  const statusBg = { strong: 'rgba(52,211,153,0.08)', good: 'rgba(34,211,238,0.08)', ok: 'rgba(251,191,36,0.08)', caution: 'rgba(251,191,36,0.08)', warn: 'rgba(248,113,113,0.08)', neutral: 'rgba(148,163,184,0.06)' };
   return (
     <div style={{
       background: C.bg2, border:`1px solid ${C.line}`,
@@ -731,53 +856,50 @@ function CodexCard({ entry, openId, setOpenId }) {
       }}>
         <div style={{display:'flex', alignItems:'center', gap:12, flex:1, minWidth:0}}>
           <div style={{
-            width:36, height:36, borderRadius:10,
-            background:`${entry.color}15`,
-            border:`1px solid ${entry.color}30`,
-            display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+            width:36, height:36, borderRadius:10, flexShrink:0,
+            background:`${entry.color}15`, border:`1px solid ${entry.color}30`,
+            display:'flex', alignItems:'center', justifyContent:'center',
           }}>
             <Ic d={i[entry.icon]} size={16} color={entry.color} />
           </div>
-          <div>
-            <div style={{fontSize:13.5, fontWeight:700, color:C.ink, marginBottom:2}}>{entry.title}</div>
-            <div style={{fontSize:11, color:entry.color, fontStyle:'italic'}}>{entry.subtitle}</div>
+          <div style={{minWidth:0}}>
+            <div style={{fontSize:13, fontWeight:700, color:C.ink, marginBottom:2}}>{entry.title}</div>
+            <div style={{
+              fontSize:10.5, fontWeight:600, color:entry.color,
+              background:`${entry.color}12`, padding:'1px 8px', borderRadius:20,
+              display:'inline-block',
+            }}>{entry.subtitle}</div>
           </div>
         </div>
-        <div style={{
-          transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-          transition:'transform 0.2s',
-        }}>
+        <div style={{transform:isOpen?'rotate(90deg)':'rotate(0deg)', transition:'transform 0.2s', flexShrink:0}}>
           <Ic d={i.chevronRight} size={14} color={C.inkDim} />
         </div>
       </button>
       {isOpen && (
-        <div style={{padding:'4px 16px 18px 16px', borderTop:`1px solid ${C.line}`}}>
-          <p style={{fontSize:12.5, color:C.inkDim, lineHeight:1.65, marginTop:14, marginBottom:14, fontStyle:'italic'}}>{entry.intro}</p>
+        <div style={{padding:'0 16px 18px', borderTop:`1px solid ${C.line}`}}>
+          {/* Main message */}
+          <div style={{
+            marginTop:14, padding:'14px',
+            background: statusBg[d.status] || statusBg.neutral,
+            borderRadius:10, borderLeft:`3px solid ${entry.color}`,
+            marginBottom:12,
+          }}>
+            <p style={{fontSize:13, color:C.ink, lineHeight:1.65}}>{d.message}</p>
+          </div>
+          {/* Today's challenge */}
           <div style={{
             padding:'12px 14px', borderRadius:10,
-            background:`${entry.color}10`, borderLeft:`2px solid ${entry.color}`,
-            marginBottom:14,
+            background:'rgba(255,255,255,0.02)',
+            border:`1px dashed ${entry.color}50`,
           }}>
-            <div className="section-tag" style={{color:entry.color, marginBottom:6}}>정신 무장</div>
-            <p style={{fontSize:12.5, color:C.ink, lineHeight:1.6, fontStyle:'italic'}}>{entry.motto}</p>
+            <div style={{
+              fontSize:9.5, fontWeight:700, letterSpacing:'0.15em', textTransform:'uppercase',
+              color:entry.color, marginBottom:6, display:'flex', alignItems:'center', gap:5,
+            }}>
+              <Ic d={i.target} size={10} color={entry.color} /> 오늘의 과제
+            </div>
+            <p style={{fontSize:12.5, color:C.inkMid, lineHeight:1.55, fontStyle:'italic'}}>{d.challenge}</p>
           </div>
-          <div className="section-tag" style={{color:C.inkDim, marginBottom:10}}>실천 조언</div>
-          <ul style={{listStyle:'none', padding:0}}>
-            {entry.practices.map((p, idx) => (
-              <li key={idx} style={{
-                padding:'9px 0 9px 24px', position:'relative',
-                fontSize:12.5, color:C.ink, lineHeight:1.6,
-                borderBottom: idx < entry.practices.length-1 ? `1px dashed rgba(255,255,255,0.05)` : 'none',
-              }}>
-                <span style={{
-                  position:'absolute', left:0, top:10,
-                  color:entry.color, fontWeight:800, fontSize:10,
-                  fontVariantNumeric:'tabular-nums',
-                }}>0{idx+1}</span>
-                {p}
-              </li>
-            ))}
-          </ul>
         </div>
       )}
     </div>
@@ -807,7 +929,7 @@ function MonthlyHeatmap({ days, axes }) {
     if (!data) return { intensity: 0, key: ds, isToday: ds === todayKey };
     let score = 0;
     if (data.axes?.length > 0) score += data.axes.length;
-    if (data.exerciseType) score += 1;
+    if (data.exerciseType || (data.exerciseTypes && data.exerciseTypes.length > 0)) score += 1;
     if (data.journal?.trim()) score += 1;
     if (data.note?.trim()) score += 0.5;
     return { intensity: Math.min(score, 5), key: ds, isToday: ds === todayKey, data };
@@ -979,8 +1101,23 @@ function PastReviews({ reviews }) {
 }
 
 // ===== TODAY TAB =====
-function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, ptDone, updateToday, toggleAxis, setExerciseType, saveData, setActiveTab, isSunday }) {
+function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, ptDone, updateToday, toggleAxis, saveData, setActiveTab, isSunday, yesterdayData }) {
   const [codexOpen, setCodexOpen] = useState(null);
+  const exerciseTypes = data.exerciseTypes || DEFAULT_EXERCISE_TYPES;
+  const todayExercises = Array.isArray(todayData.exerciseTypes) ? todayData.exerciseTypes : (todayData.exerciseType ? [todayData.exerciseType] : []);
+
+  const toggleExercise = (id) => {
+    const next = todayExercises.includes(id)
+      ? todayExercises.filter(x => x !== id)
+      : [...todayExercises, id];
+    updateToday({ exerciseTypes: next, exerciseType: next[0] || null });
+  };
+
+  const codex = generateDynamicCodex(yesterdayData, data.axes);
+
+  // Count cols for exercise grid
+  const cols = exerciseTypes.length <= 3 ? exerciseTypes.length : Math.ceil(exerciseTypes.length / 2) >= 3 ? 3 : 2;
+
   return (
     <div>
       {/* Status banner */}
@@ -1069,24 +1206,50 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
           </div>
         </div>
 
-        {/* Exercise */}
+        {/* Exercise — multi-select */}
         <div style={{marginBottom:18}}>
-          <div className="section-tag" style={{color:C.inkDim, marginBottom:8}}>운동 종류</div>
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6}}>
-            {EXERCISE_TYPES.map(et => {
-              const active = todayData.exerciseType === et.id;
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
+            <div style={{display:'flex', alignItems:'center', gap:7}}>
+              <div className="section-tag" style={{color:C.inkDim}}>운동 종류</div>
+              {todayExercises.length > 0 && (
+                <span style={{
+                  fontSize:9.5, fontWeight:700, color:C.teal,
+                  background:`${C.teal}18`, border:`1px solid ${C.teal}40`,
+                  padding:'1px 7px', borderRadius:20,
+                }}>{todayExercises.length}개 선택</span>
+              )}
+            </div>
+            <button onClick={() => setActiveTab('manage')} style={{
+              background:'transparent', border:'none', color:C.teal,
+              fontSize:10.5, cursor:'pointer', fontWeight:600,
+              display:'flex', alignItems:'center', gap:3,
+            }}>편집 <Ic d={i.chevronRight} size={10} color={C.teal} /></button>
+          </div>
+          <div style={{display:'grid', gridTemplateColumns:`repeat(${cols}, 1fr)`, gap:6}}>
+            {exerciseTypes.map(et => {
+              const active = todayExercises.includes(et.id);
               const isPt = et.id === 'pt';
-              const disabled = isPt && ptDone && !active;
+              const ptMaxed = isPt && ptDone && !active;
               return (
-                <button key={et.id} onClick={() => !disabled && setExerciseType(et.id)} disabled={disabled}
-                  className={disabled ? '' : 'btn-press'} style={{
+                <button key={et.id} onClick={() => !ptMaxed && toggleExercise(et.id)}
+                  className={ptMaxed ? '' : 'btn-press'} style={{
                     background: active ? `${et.color}18` : 'rgba(255,255,255,0.02)',
                     border:`1px solid ${active ? et.color+'60' : C.line}`,
-                    borderRadius:12, padding:'10px 8px', cursor:disabled ? 'not-allowed' : 'pointer',
-                    display:'flex', flexDirection:'column', alignItems:'center', gap:5, opacity:disabled ? 0.4 : 1,
+                    borderRadius:12, padding:'10px 8px', cursor:ptMaxed ? 'not-allowed' : 'pointer',
+                    display:'flex', flexDirection:'column', alignItems:'center', gap:5,
+                    opacity:ptMaxed ? 0.4 : 1,
                     boxShadow: active ? `0 0 20px ${et.color}20` : 'none',
-                    transition:'all 0.2s',
+                    transition:'all 0.2s', position:'relative',
                   }}>
+                  {active && (
+                    <div style={{
+                      position:'absolute', top:5, right:5,
+                      width:14, height:14, borderRadius:'50%',
+                      background:et.color, display:'flex', alignItems:'center', justifyContent:'center',
+                    }}>
+                      <Ic d={i.check} size={8} color='#080b14' strokeWidth={3} />
+                    </div>
+                  )}
                   <Ic d={i[et.icon]} size={16} color={active ? et.color : C.inkDim} />
                   <span style={{fontSize:11.5, color:active ? et.color : C.inkDim, fontWeight:active ? 700 : 400}}>
                     {et.label}{isPt && ` (${ptRemaining})`}
@@ -1095,6 +1258,22 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
               );
             })}
           </div>
+          {todayExercises.length > 1 && (
+            <div style={{marginTop:7, display:'flex', gap:5, flexWrap:'wrap'}}>
+              {todayExercises.map(id => {
+                const et = exerciseTypes.find(e => e.id === id);
+                if (!et) return null;
+                return (
+                  <span key={id} style={{
+                    fontSize:10, padding:'2px 9px', borderRadius:20,
+                    background:`${et.color}18`, border:`1px solid ${et.color}40`,
+                    color:et.color, fontWeight:600,
+                  }}>{et.label}</span>
+                );
+              })}
+              <span style={{fontSize:10.5, color:C.inkDim, alignSelf:'center'}}>복합 운동 ✓</span>
+            </div>
+          )}
         </div>
 
         {/* Cafe toggle */}
@@ -1193,15 +1372,22 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
         )}
       </div>
 
-      {/* Leader's Codex */}
+      {/* Leader's Codex — dynamic based on yesterday */}
       <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'18px 20px', marginBottom:14}}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}}>
           <div style={{display:'flex', alignItems:'center', gap:7}}>
             <Ic d={i.crown} size={14} color={C.gold} />
             <span className="section-tag" style={{color:C.gold}}>Leader's Codex</span>
           </div>
+          <span style={{
+            fontSize:9.5, color:C.inkDim, fontStyle:'italic',
+            background:'rgba(255,255,255,0.03)', padding:'2px 8px', borderRadius:6,
+          }}>어제 기반 · 오늘 경각심</span>
         </div>
-        {CODEX.map(entry => <CodexCard key={entry.id} entry={entry} openId={codexOpen} setOpenId={setCodexOpen} />)}
+        <p style={{fontSize:11, color:C.inkDim, marginBottom:14, lineHeight:1.5}}>
+          어제의 기록이 오늘의 코덱스를 만듭니다. 탭해서 펼치세요.
+        </p>
+        {codex.map(entry => <CodexCard key={entry.id} entry={entry} openId={codexOpen} setOpenId={setCodexOpen} />)}
       </div>
     </div>
   );
@@ -1351,6 +1537,9 @@ function ManageTab({ data, saveData }) {
   const [editAxis, setEditAxis] = useState(null);
   const [newAxis, setNewAxis] = useState(false);
   const [axisForm, setAxisForm] = useState({ label:'', sub:'', color:C.sage, icon:'sparkles' });
+  const [editExType, setEditExType] = useState(null);
+  const [newExType, setNewExType] = useState(false);
+  const [exTypeForm, setExTypeForm] = useState({ label:'', icon:'dumbbell', color:C.teal });
   const [importText, setImportText] = useState('');
   const [showImport, setShowImport] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
@@ -1410,6 +1599,96 @@ function ManageTab({ data, saveData }) {
 
   return (
     <div>
+      {/* Exercise types management */}
+      <SectionToggle label="운동 종류 관리" icon="dumbbell" color={C.teal} open={true} onToggle={() => {}}>
+        {(data.exerciseTypes || DEFAULT_EXERCISE_TYPES).map(et => (
+          <div key={et.id} style={{
+            display:'flex', justifyContent:'space-between', alignItems:'center',
+            padding:'10px 12px', borderRadius:10, marginTop:8,
+            background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`,
+            borderLeft:`3px solid ${et.color}`,
+          }}>
+            <div style={{display:'flex', alignItems:'center', gap:8}}>
+              <Ic d={i[et.icon]} size={13} color={et.color} />
+              <span style={{fontSize:12.5, fontWeight:700, color:C.ink}}>{et.label}</span>
+            </div>
+            <div style={{display:'flex', gap:5}}>
+              <button onClick={() => { setEditExType(et.id); setExTypeForm({label:et.label,icon:et.icon,color:et.color}); setNewExType(true); }}
+                style={{background:'rgba(255,255,255,0.05)', border:`1px solid ${C.line}`, color:C.inkMid, padding:'5px 8px', borderRadius:7, cursor:'pointer', display:'flex', alignItems:'center'}}>
+                <Ic d={i.edit} size={12} />
+              </button>
+              <button onClick={() => {
+                if (!confirm('이 운동 종류를 삭제할까요?')) return;
+                saveData({ ...data, exerciseTypes: (data.exerciseTypes||DEFAULT_EXERCISE_TYPES).filter(e => e.id !== et.id) });
+              }} style={{background:`${C.rust}12`, border:`1px solid ${C.rust}30`, color:C.rust, padding:'5px 8px', borderRadius:7, cursor:'pointer', display:'flex', alignItems:'center'}}>
+                <Ic d={i.trash} size={12} />
+              </button>
+            </div>
+          </div>
+        ))}
+        {newExType && (
+          <div style={{marginTop:12, padding:'14px', background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`, borderRadius:10}}>
+            <div className="section-tag" style={{color:C.teal, marginBottom:10}}>{editExType ? '운동 종류 수정' : '새 운동 종류 추가'}</div>
+            <input value={exTypeForm.label} onChange={e => setExTypeForm({...exTypeForm, label:e.target.value})} placeholder="이름 (ex: 수영)" className="field" style={{marginBottom:10}} />
+            <div style={{display:'flex', gap:5, flexWrap:'wrap', marginBottom:10}}>
+              {COLOR_OPTIONS.map(c => (
+                <button key={c} onClick={() => setExTypeForm({...exTypeForm, color:c})} style={{
+                  width:26, height:26, borderRadius:7, background:c,
+                  border:`2px solid ${exTypeForm.color === c ? '#fff' : 'transparent'}`,
+                  cursor:'pointer',
+                }} />
+              ))}
+            </div>
+            <div style={{display:'flex', gap:5, flexWrap:'wrap', marginBottom:12}}>
+              {ICON_OPTIONS.map(ic => (
+                <button key={ic} onClick={() => setExTypeForm({...exTypeForm, icon:ic})} style={{
+                  width:30, height:30, borderRadius:7,
+                  background: exTypeForm.icon === ic ? `${exTypeForm.color}20` : 'rgba(255,255,255,0.03)',
+                  border:`1px solid ${exTypeForm.icon === ic ? exTypeForm.color : C.line}`,
+                  cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+                }}>
+                  <Ic d={i[ic]} size={13} color={exTypeForm.icon === ic ? exTypeForm.color : C.inkDim} />
+                </button>
+              ))}
+            </div>
+            <div style={{display:'flex', gap:6}}>
+              <button onClick={() => {
+                if (!exTypeForm.label.trim()) return;
+                const types = data.exerciseTypes || DEFAULT_EXERCISE_TYPES;
+                if (editExType) {
+                  saveData({ ...data, exerciseTypes: types.map(e => e.id === editExType ? {...e, ...exTypeForm} : e) });
+                  setEditExType(null);
+                } else {
+                  saveData({ ...data, exerciseTypes: [...types, { id: uid(), ...exTypeForm }] });
+                }
+                setNewExType(false);
+                setExTypeForm({label:'', icon:'dumbbell', color:C.teal});
+              }} className="btn-press" style={{
+                flex:1, padding:'9px', borderRadius:9, border:'none', cursor:'pointer',
+                background:`linear-gradient(135deg, ${C.teal}, #67e8f9)`,
+                color:'#080b14', fontSize:12.5, fontWeight:700,
+              }}>저장</button>
+              <button onClick={() => { setNewExType(false); setEditExType(null); }} className="btn-press" style={{
+                flex:1, padding:'9px', borderRadius:9, cursor:'pointer',
+                background:'rgba(255,255,255,0.04)', border:`1px solid ${C.line}`,
+                color:C.inkDim, fontSize:12.5,
+              }}>취소</button>
+            </div>
+          </div>
+        )}
+        {!newExType && (
+          <button onClick={() => { setNewExType(true); setEditExType(null); setExTypeForm({label:'',icon:'dumbbell',color:C.teal}); }}
+            className="btn-press" style={{
+              width:'100%', marginTop:10, padding:'10px', borderRadius:10,
+              background:`${C.teal}08`, border:`1px dashed ${C.teal}40`,
+              color:C.teal, fontSize:12, fontWeight:600, cursor:'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+            }}>
+            <Ic d={i.plus} size={13} color={C.teal} /> 운동 종류 추가
+          </button>
+        )}
+      </SectionToggle>
+
       {/* Axes management */}
       <SectionToggle label="학습 Axis 관리" icon="sparkles" color={C.sage} open={true} onToggle={() => {}}>
         {data.axes.map(ax => (
@@ -1636,18 +1915,25 @@ function App() {
   );
 
   const today = todayStr();
-  const todayData = data.days[today] || { axes:[], exerciseType:null, sleepHrs:8, note:'', cafe:false, mood:null, journal:'', selfQ:{} };
+  const todayData = data.days[today] || { axes:[], exerciseTypes:[], exerciseType:null, sleepHrs:8, note:'', cafe:false, mood:null, journal:'', selfQ:{} };
   const dToStart = dDay(data.startDate);
-  const ptDoneSinceStart = Object.values(data.days).filter(d => d.exerciseType === 'pt').length;
+  const ptDoneSinceStart = Object.values(data.days).filter(d => d.exerciseType === 'pt' || (d.exerciseTypes && d.exerciseTypes.includes('pt'))).length;
   const ptCompleted = PT_CONFIG.initialDone + ptDoneSinceStart;
   const ptRemaining = Math.max(0, PT_CONFIG.total - ptCompleted);
   const ptDone = ptRemaining === 0;
+
+  // Yesterday's data for dynamic codex
+  const yesterdayDate = (() => {
+    const d = new Date(); d.setDate(d.getDate()-1);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+  const yesterdayData = data.days[yesterdayDate] || null;
+
   const updateToday = (patch) => saveData({ ...data, days: { ...data.days, [today]: { ...todayData, ...patch } } });
   const toggleAxis = (axisId) => {
     const axes = todayData.axes.includes(axisId) ? todayData.axes.filter(a => a !== axisId) : [...todayData.axes, axisId];
     updateToday({ axes });
   };
-  const setExerciseType = (typeId) => updateToday({ exerciseType: todayData.exerciseType === typeId ? null : typeId });
   const todayDay = ['일','월','화','수','목','금','토'][new Date(today).getDay()];
   const isSunday = new Date(today).getDay() === 0;
   const streaks = calculateStreaks(data.days);
@@ -1715,8 +2001,9 @@ function App() {
           <TodayTab
             data={data} today={today} todayData={todayData} dToStart={dToStart}
             ptCompleted={ptCompleted} ptRemaining={ptRemaining} ptDone={ptDone}
-            updateToday={updateToday} toggleAxis={toggleAxis} setExerciseType={setExerciseType}
+            updateToday={updateToday} toggleAxis={toggleAxis}
             saveData={saveData} setActiveTab={setActiveTab} isSunday={isSunday}
+            yesterdayData={yesterdayData}
           />
         )}
         {activeTab === 'analysis' && (

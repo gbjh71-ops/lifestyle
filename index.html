@@ -314,6 +314,25 @@ const groupGuideTasks = (tasks) => {
   groups.forEach(g => { if (g.dated) g.tasks.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0); });
   return groups;
 };
+// ===== 자기계발 보류 HELPERS =====
+// axis.paused = true 이면 보류. 모든 Axis가 보류된 기간은 pauseLog에 남겨 스트릭이 끊기지 않게 함
+const activeAxes = (axes) => (axes || []).filter(a => !a.paused);
+const isAllPaused = (axes) => (axes || []).length > 0 && axes.every(a => a.paused);
+const isPausedDate = (log, date) => (log || []).some(p => p.start <= date && (!p.end || date <= p.end));
+const currentPause = (log) => (log || []).find(p => !p.end) || null;
+const withAxesPaused = (data, ids, paused) => {
+  const today = localDateStr();
+  const axes = data.axes.map(a => ids.includes(a.id) ? { ...a, paused } : a);
+  let log = [...(data.pauseLog || [])];
+  const was = isAllPaused(data.axes), now = isAllPaused(axes);
+  if (!was && now) log.push({ start: today, end: null });
+  if (was && !now) {
+    // 보류 해제: 어제까지를 보류 기간으로 확정 (오늘 바로 해제하면 기간 없음)
+    const end = addDaysStr(today, -1);
+    log = log.map(p => p.end ? p : { ...p, end }).filter(p => p.end >= p.start);
+  }
+  return { ...data, axes, pauseLog: log };
+};
 const daysSince = (iso) => iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 86400000) : null;
 
 // ===== REDESIGNED COLOR SYSTEM =====
@@ -718,7 +737,7 @@ const getWeekNum = (d) => {
   return 1 + Math.ceil((firstThursday - target) / 604800000);
 };
 
-function calculateStreaks(days) {
+function calculateStreaks(days, pauseLog = []) {
   const sorted = Object.keys(days).sort();
   if (sorted.length === 0) return { activity: 0, exercise: 0, journal: 0, longest: 0 };
   const today = todayStr();
@@ -737,21 +756,19 @@ function calculateStreaks(days) {
     while (true) {
       const ds = `${checkDate.getFullYear()}-${String(checkDate.getMonth()+1).padStart(2,'0')}-${String(checkDate.getDate()).padStart(2,'0')}`;
       if (checkDay(ds, type)) { streak++; checkDate.setDate(checkDate.getDate() - 1); }
+      // 자기계발 보류 기간은 활동 스트릭을 끊지 않고 건너뜀
+      else if (type === 'activity' && isPausedDate(pauseLog, ds)) { checkDate.setDate(checkDate.getDate() - 1); }
       else break;
     }
     return streak;
   };
-  let longest = 0, current = 0, prevDate = null;
-  sorted.forEach(d => {
-    if (checkDay(d, 'activity')) {
-      if (prevDate) {
-        const diff = (new Date(d) - new Date(prevDate)) / 86400000;
-        current = diff === 1 ? current + 1 : 1;
-      } else current = 1;
-      if (current > longest) longest = current;
-      prevDate = d;
-    } else { current = 0; prevDate = d; }
-  });
+  let longest = 0, current = 0;
+  const lastDay = sorted[sorted.length - 1] > today ? sorted[sorted.length - 1] : today;
+  for (let d = sorted[0]; d <= lastDay; d = addDaysStr(d, 1)) {
+    if (checkDay(d, 'activity')) { current++; if (current > longest) longest = current; }
+    else if (isPausedDate(pauseLog, d)) continue;
+    else if (d !== today) current = 0;
+  }
   return { activity: computeStreak('activity'), exercise: computeStreak('exercise'), journal: computeStreak('journal'), longest };
 }
 
@@ -1173,7 +1190,7 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
     updateToday({ exerciseTypes: next, exerciseType: next[0] || null });
   };
 
-  const codex = generateDynamicCodex(yesterdayData, data.axes);
+  const codex = generateDynamicCodex(yesterdayData, activeAxes(data.axes));
 
   // Count cols for exercise grid
   const cols = exerciseTypes.length <= 3 ? exerciseTypes.length : Math.ceil(exerciseTypes.length / 2) >= 3 ? 3 : 2;
@@ -1231,14 +1248,46 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
         <div style={{marginBottom:18}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
             <div className="section-tag" style={{color:C.inkDim}}>학습 영역</div>
-            <button onClick={() => setActiveTab('manage')} style={{
-              background:'transparent', border:'none', color:C.teal,
-              fontSize:10.5, cursor:'pointer', fontWeight:600,
-              display:'flex', alignItems:'center', gap:3,
-            }}>편집 <Ic d={i.chevronRight} size={10} color={C.teal} /></button>
+            <div style={{display:'flex', alignItems:'center', gap:10}}>
+              {!isAllPaused(data.axes) && data.axes.length > 0 && (
+                <button onClick={() => {
+                  if (!confirm('자기계발(학습 영역) 전체를 보류할까요?\n보류 중에는 오늘 화면에서 숨겨지고, 활동 스트릭도 끊기지 않아요.')) return;
+                  saveData(withAxesPaused(data, data.axes.map(a => a.id), true));
+                }} style={{
+                  background:'transparent', border:'none', color:C.inkDim,
+                  fontSize:10.5, cursor:'pointer', fontWeight:600, padding:0,
+                }}>전체 보류</button>
+              )}
+              <button onClick={() => setActiveTab('manage')} style={{
+                background:'transparent', border:'none', color:C.teal,
+                fontSize:10.5, cursor:'pointer', fontWeight:600,
+                display:'flex', alignItems:'center', gap:3, padding:0,
+              }}>편집 <Ic d={i.chevronRight} size={10} color={C.teal} /></button>
+            </div>
           </div>
+          {isAllPaused(data.axes) ? (() => {
+            const cp = currentPause(data.pauseLog);
+            const dayN = cp ? Math.floor((parseLocalDate(localDateStr()) - parseLocalDate(cp.start)) / 86400000) + 1 : null;
+            return (
+              <div style={{
+                display:'flex', alignItems:'center', justifyContent:'space-between', gap:10,
+                padding:'12px 14px', borderRadius:12,
+                background:'rgba(255,255,255,0.02)', border:`1px dashed ${C.line}`,
+              }}>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:12.5, fontWeight:700, color:C.inkMid}}>자기계발 보류 중{dayN ? ` · ${dayN}일째` : ''}</div>
+                  <div style={{fontSize:11, color:C.inkDim, marginTop:2, lineHeight:1.4}}>지금은 다른 데 집중하는 시기. 활동 스트릭은 멈춰 있어요.</div>
+                </div>
+                <button onClick={() => saveData(withAxesPaused(data, data.axes.map(a => a.id), false))} className="btn-press" style={{
+                  flexShrink:0, padding:'7px 12px', borderRadius:8, cursor:'pointer',
+                  background:'transparent', border:`1px solid ${C.teal}`, color:C.teal, fontSize:11.5, fontWeight:700,
+                }}>재개</button>
+              </div>
+            );
+          })() : (
+          <>
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:7}}>
-            {data.axes.map(ax => {
+            {activeAxes(data.axes).map(ax => {
               const active = todayData.axes.includes(ax.id);
               return (
                 <button key={ax.id} onClick={() => toggleAxis(ax.id)} className="btn-press" style={{
@@ -1264,6 +1313,13 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
               );
             })}
           </div>
+          {data.axes.some(a => a.paused) && (
+            <div style={{fontSize:11, color:C.inkDim, marginTop:8}}>
+              보류 중: {data.axes.filter(a => a.paused).map(a => a.label).join(', ')}
+            </div>
+          )}
+          </>
+          )}
         </div>
 
         {/* Exercise — multi-select */}
@@ -1843,13 +1899,17 @@ function ManageTab({ data, saveData }) {
             borderLeft:`3px solid ${ax.color}`,
           }}>
             <div style={{display:'flex', alignItems:'center', gap:8}}>
-              <Ic d={i[ax.icon]} size={13} color={ax.color} />
-              <div>
-                <div style={{fontSize:12.5, fontWeight:700, color:C.ink}}>{ax.label}</div>
+              <Ic d={i[ax.icon]} size={13} color={ax.paused ? C.inkDim : ax.color} />
+              <div style={{opacity: ax.paused ? 0.55 : 1}}>
+                <div style={{fontSize:12.5, fontWeight:700, color:C.ink}}>{ax.label}{ax.paused && <span style={{fontSize:10, color:C.inkDim, fontWeight:600, marginLeft:6}}>보류 중</span>}</div>
                 <div style={{fontSize:11, color:C.inkDim}}>{ax.sub}</div>
               </div>
             </div>
             <div style={{display:'flex', gap:5}}>
+              <button onClick={() => saveData(withAxesPaused(data, [ax.id], !ax.paused))}
+                style={{background:'transparent', border:`1px solid ${ax.paused ? C.teal : C.line}`, color: ax.paused ? C.teal : C.inkMid, padding:'5px 9px', borderRadius:7, cursor:'pointer', fontSize:11, fontWeight:600}}>
+                {ax.paused ? '재개' : '보류'}
+              </button>
               <button onClick={() => { setEditAxis(ax.id); setAxisForm({label:ax.label,sub:ax.sub,color:ax.color,icon:ax.icon}); setNewAxis(true); }}
                 style={{background:'rgba(255,255,255,0.05)', border:`1px solid ${C.line}`, color:C.inkMid, padding:'5px 8px', borderRadius:7, cursor:'pointer', display:'flex', alignItems:'center'}}>
                 <Ic d={i.edit} size={12} />
@@ -2206,7 +2266,7 @@ function App() {
   };
   const todayDay = ['일','월','화','수','목','금','토'][new Date(today).getDay()];
   const isSunday = new Date(today).getDay() === 0;
-  const streaks = calculateStreaks(data.days);
+  const streaks = calculateStreaks(data.days, data.pauseLog);
 
   const TABS = [
     { id:'today', label:'Today', icon:'home' },

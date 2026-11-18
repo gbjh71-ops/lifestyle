@@ -243,6 +243,51 @@ const { useState, useEffect, useMemo, useCallback } = React;
 const STORAGE_KEY = 'lifestyle-tracker-v8';
 const STORAGE_KEY_LEGACY_V7 = 'lifestyle-tracker-v7';
 const STORAGE_KEY_LEGACY_V6 = 'lifestyle-tracker-v6';
+const LAST_BACKUP_KEY = 'lifestyle-tracker-last-backup';
+const SNAPSHOT_KEY = 'lifestyle-tracker-snapshots';
+const SNAPSHOT_KEEP = 7;
+
+// ===== BACKUP HELPERS =====
+const localDateStr = (d = new Date()) => {
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+};
+const safeGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const safeSet = (k, v) => { try { localStorage.setItem(k, v); return true; } catch(e) { console.error(e); return false; } };
+const loadSnapshots = () => {
+  try { const v = JSON.parse(safeGet(SNAPSHOT_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
+};
+// 하루 한 번, 그날 처음 열었을 때의 데이터를 자동 스냅샷으로 보관 (최근 7개)
+const takeDailySnapshot = (data) => {
+  const today = localDateStr();
+  const snaps = loadSnapshots();
+  if (snaps.some(s => s.date === today)) return;
+  const next = [{ date: today, savedAt: new Date().toISOString(), data }, ...snaps].slice(0, SNAPSHOT_KEEP);
+  // 용량 초과 시 오래된 것부터 줄여가며 재시도
+  for (let n = next.length; n > 0; n--) {
+    if (safeSet(SNAPSHOT_KEY, JSON.stringify(next.slice(0, n)))) return;
+  }
+};
+const pushSnapshot = (data, label) => {
+  const snaps = loadSnapshots();
+  const next = [{ date: localDateStr(), savedAt: new Date().toISOString(), label, data }, ...snaps].slice(0, SNAPSHOT_KEEP);
+  for (let n = next.length; n > 0; n--) {
+    if (safeSet(SNAPSHOT_KEY, JSON.stringify(next.slice(0, n)))) return;
+  }
+};
+// 백업 파일 검증: 객체이고 days가 객체여야 함. 래핑된 백업({app, data})도 허용
+const parseBackup = (text) => {
+  const raw = JSON.parse(text);
+  const d = raw && raw.app === 'lifestyle-tracker' && raw.data ? raw.data : raw;
+  if (!d || typeof d !== 'object' || Array.isArray(d)) throw new Error('객체 형식이 아닙니다.');
+  if (!d.days || typeof d.days !== 'object' || Array.isArray(d.days)) throw new Error('days 기록이 없습니다.');
+  return d;
+};
+const summarizeData = (d) => {
+  const dates = Object.keys(d.days || {}).sort();
+  return { count: dates.length, first: dates[0] || '-', last: dates[dates.length-1] || '-' };
+};
+const daysSince = (iso) => iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 86400000) : null;
 
 // ===== REDESIGNED COLOR SYSTEM =====
 const C = {
@@ -1542,6 +1587,9 @@ function ManageTab({ data, saveData }) {
   const [exTypeForm, setExTypeForm] = useState({ label:'', icon:'dumbbell', color:C.teal });
   const [importText, setImportText] = useState('');
   const [showImport, setShowImport] = useState(false);
+  const [lastBackup, setLastBackup] = useState(() => safeGet(LAST_BACKUP_KEY));
+  const [snapshots, setSnapshots] = useState(() => loadSnapshots());
+  const [showSnapshots, setShowSnapshots] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [showBooks, setShowBooks] = useState(false);
 
@@ -1562,18 +1610,61 @@ function ManageTab({ data, saveData }) {
   };
 
   const exportData = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const payload = { app: 'lifestyle-tracker', version: 8, exportedAt: new Date().toISOString(), data };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'lifestyle-tracker.json'; a.click();
+    const a = document.createElement('a');
+    a.href = url; a.download = `lifestyle-tracker-${localDateStr()}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const now = new Date().toISOString();
+    safeSet(LAST_BACKUP_KEY, now); setLastBackup(now);
+  };
+  // 덮어쓰기 전 현재 데이터를 스냅샷으로 남겨서 언제든 되돌릴 수 있게 함
+  const restoreFrom = (d, sourceLabel) => {
+    const cur = summarizeData(data), inc = summarizeData(d);
+    const msg = `${sourceLabel}\n\n현재: ${cur.count}일 기록 (${cur.first} ~ ${cur.last})\n` +
+      `가져올 데이터: ${inc.count}일 기록 (${inc.first} ~ ${inc.last})\n\n` +
+      `현재 데이터를 덮어씁니다. (현재 데이터는 '복원 전 자동 보관' 스냅샷으로 남습니다)\n계속할까요?`;
+    if (!confirm(msg)) return false;
+    pushSnapshot(data, '복원 전 자동 보관');
+    setSnapshots(loadSnapshots());
+    saveData({ ...initialData(), ...d });
+    return true;
   };
   const importData = () => {
-    try {
-      const parsed = JSON.parse(importText);
-      saveData({ ...initialData(), ...parsed });
+    let parsed;
+    try { parsed = parseBackup(importText); }
+    catch (e) { alert('가져올 수 없는 데이터입니다: ' + (e.message || 'JSON 형식 오류')); return; }
+    if (restoreFrom(parsed, '붙여넣은 JSON으로 복원')) {
       setImportText(''); setShowImport(false);
       alert('가져오기 완료!');
-    } catch { alert('JSON 형식이 잘못됐습니다.'); }
+    }
   };
+  const importFile = (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let parsed;
+      try { parsed = parseBackup(String(reader.result)); }
+      catch (err) { alert('가져올 수 없는 파일입니다: ' + (err.message || 'JSON 형식 오류')); return; }
+      if (restoreFrom(parsed, `파일에서 복원: ${file.name}`)) {
+        setShowImport(false);
+        alert('가져오기 완료!');
+      }
+    };
+    reader.onerror = () => alert('파일을 읽지 못했습니다.');
+    reader.readAsText(file);
+  };
+  const restoreSnapshot = (snap) => {
+    if (restoreFrom(snap.data, `스냅샷 복원: ${snap.date}${snap.label ? ' · ' + snap.label : ''}`)) {
+      alert('복원 완료!');
+    }
+  };
+  const backupAge = daysSince(lastBackup);
+  const backupStale = backupAge === null || backupAge >= 7;
   const toggleGuideTask = (id) => {
     saveData({ ...data, guideTasksDone: { ...data.guideTasksDone, [id]: !data.guideTasksDone[id] } });
   };
@@ -1845,6 +1936,20 @@ function ManageTab({ data, saveData }) {
           <Ic d={i.settings} size={14} color={C.slate} />
           <span className="section-tag" style={{color:C.slate}}>데이터 관리</span>
         </div>
+        <div style={{
+          display:'flex', alignItems:'center', gap:8, padding:'9px 12px', borderRadius:10, marginBottom:10,
+          background: backupStale ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.03)',
+          border:`1px solid ${backupStale ? 'rgba(251,191,36,0.3)' : C.line}`,
+        }}>
+          <Ic d={i.alert} size={13} color={backupStale ? '#fbbf24' : C.inkDim} />
+          <span style={{fontSize:11.5, color: backupStale ? '#fbbf24' : C.inkMid, lineHeight:1.5}}>
+            {backupAge === null
+              ? '아직 파일로 백업한 적이 없어요. 기록은 이 브라우저에만 저장돼 있어요.'
+              : backupAge === 0
+                ? '오늘 백업했어요.'
+                : `마지막 백업: ${backupAge}일 전${backupStale ? ' — 백업을 권장해요.' : ''}`}
+          </span>
+        </div>
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:10}}>
           <button onClick={exportData} className="btn-press" style={{
             padding:'10px 12px', borderRadius:10, cursor:'pointer',
@@ -1865,12 +1970,54 @@ function ManageTab({ data, saveData }) {
         </div>
         {showImport && (
           <div>
+            <label className="btn-press" style={{
+              display:'flex', alignItems:'center', justifyContent:'center', gap:7, marginBottom:8,
+              padding:'10px 12px', borderRadius:10, cursor:'pointer',
+              background:'rgba(255,255,255,0.03)', border:`1px dashed ${C.line}`,
+              color:C.inkMid, fontSize:12, fontWeight:600,
+            }}>
+              <Ic d={i.upload} size={13} /> 백업 파일(.json) 선택
+              <input type="file" accept="application/json,.json" onChange={importFile} style={{display:'none'}} />
+            </label>
+            <div style={{fontSize:10.5, color:C.inkDim, textAlign:'center', margin:'4px 0 8px'}}>또는 JSON 직접 붙여넣기</div>
             <textarea value={importText} onChange={e => setImportText(e.target.value)} placeholder="JSON 데이터 붙여넣기..." rows={4} className="field" style={{marginBottom:8}} />
             <button onClick={importData} className="btn-press" style={{
               width:'100%', padding:'9px', borderRadius:9, border:'none', cursor:'pointer',
               background:`linear-gradient(135deg, ${C.teal}, #67e8f9)`,
               color:'#0a0c14', fontSize:12.5, fontWeight:700,
             }}>가져오기 실행</button>
+          </div>
+        )}
+        <button onClick={() => { setSnapshots(loadSnapshots()); setShowSnapshots(!showSnapshots); }} className="btn-press" style={{
+          width:'100%', marginTop:8, padding:'9px 12px', borderRadius:10, cursor:'pointer',
+          background:'transparent', border:`1px solid ${C.line}`,
+          color:C.inkDim, fontSize:11.5, fontWeight:600,
+        }}>자동 스냅샷 {showSnapshots ? '닫기' : `보기 (${snapshots.length})`}</button>
+        {showSnapshots && (
+          <div style={{marginTop:8}}>
+            <div style={{fontSize:10.5, color:C.inkDim, lineHeight:1.6, marginBottom:8}}>
+              매일 처음 열 때 그 시점 데이터를 이 브라우저에 최근 {SNAPSHOT_KEEP}개까지 보관해요. 실수로 지우거나 잘못 가져왔을 때 되돌리는 용도이고, 브라우저 데이터를 지우면 함께 사라지니 파일 백업도 꼭 해 주세요.
+            </div>
+            {snapshots.length === 0 && <div style={{fontSize:11.5, color:C.inkDim, textAlign:'center', padding:8}}>아직 스냅샷이 없어요.</div>}
+            {snapshots.map((s, idx) => {
+              const sm = summarizeData(s.data || {});
+              return (
+                <div key={s.savedAt + idx} style={{
+                  display:'flex', alignItems:'center', justifyContent:'space-between', gap:8,
+                  padding:'8px 10px', borderRadius:9, marginBottom:6,
+                  background:'rgba(255,255,255,0.03)', border:`1px solid ${C.line}`,
+                }}>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontSize:12, color:C.ink, fontWeight:600}}>{s.date}{s.label ? ` · ${s.label}` : ''}</div>
+                    <div style={{fontSize:10.5, color:C.inkDim}}>{sm.count}일 기록 · 마지막 {sm.last}</div>
+                  </div>
+                  <button onClick={() => restoreSnapshot(s)} className="btn-press" style={{
+                    flexShrink:0, padding:'6px 10px', borderRadius:8, cursor:'pointer',
+                    background:'transparent', border:`1px solid ${C.teal}`, color:C.teal, fontSize:11, fontWeight:700,
+                  }}>복원</button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -1892,6 +2039,7 @@ function App() {
       if (!stored) stored = localStorage.getItem(STORAGE_KEY_LEGACY_V6);
       if (stored) {
         const parsed = JSON.parse(stored);
+        takeDailySnapshot(parsed);
         setData({ ...initialData(), ...parsed });
       } else setData(initialData());
     } catch { setData(initialData()); }

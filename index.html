@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#080b14">
+<meta name="theme-color" content="#0e1214">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Tracker">
@@ -11,227 +11,155 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%2334d399'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%237fd1a8'/></svg>">
 <style>
+  :root {
+    --bg: #0e1214; --surface: #161b1e; --surface-raised: #1f2629;
+    --ink: #eef2ef; --ink-mid: #c0c9c4; --ink-dim: #97a29c;
+    --line: rgba(255,255,255,0.09); --line-control: #6b7771;
+    --sage: #7fd1a8; --gold: #e5bd6b; --teal: #6fc7cc; --rust: #ee9580; --plum: #bda8e8; --slate: #a7b2bb;
+    --on-accent: #0e1214; --focus: #a8e6c8;
+    --radius-xs: 4px; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 20px; --radius-pill: 999px;
+    --ease: cubic-bezier(0.22,1,0.36,1);
+  }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
-    background: #080b14;
-    color: #f0f2f8;
+    background: var(--bg);
+    color: var(--ink);
     font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
     overflow-x: hidden;
+    word-break: keep-all;
   }
   body { min-height: 100vh; min-height: 100dvh; }
-  button { font-family: inherit; cursor: pointer; }
+  button { font-family: inherit; cursor: pointer; min-height: 36px; }
   input, textarea, select { font-family: inherit; }
   textarea { resize: vertical; }
   #root { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); position: relative; z-index: 1; }
-
-  /* Ambient background orbs */
-  .bg-orb {
-    position: fixed; pointer-events: none; z-index: 0;
-    border-radius: 50%;
-    filter: blur(80px);
-  }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button:focus-visible { outline-offset: -2px; }
 
   /* Modal */
   .modal-bg {
     position: fixed; inset: 0;
-    background: rgba(4,6,15,0.88);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(8,10,11,0.8);
     z-index: 100; display: flex; align-items: flex-end;
     animation: fadeIn 0.2s ease;
   }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes slideUp { from { transform: translateY(28px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
-  @keyframes pop { 0%{transform:scale(0.95)}50%{transform:scale(1.03)}100%{transform:scale(1)} }
-  @keyframes glow { 0%,100%{box-shadow:0 0 12px rgba(52,211,153,0.2)} 50%{box-shadow:0 0 28px rgba(52,211,153,0.45)} }
+  @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes pop { 0%{transform:scale(0.97)}100%{transform:scale(1)} }
 
   .modal-body {
     width: 100%; max-width: 520px; margin: 0 auto;
-    background: #0f1322;
-    border-top: 1px solid rgba(52,211,153,0.3);
-    box-shadow: 0 -24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04);
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     max-height: 90vh; overflow-y: auto;
-    animation: slideUp 0.28s cubic-bezier(0.22,1,0.36,1);
+    animation: slideUp 0.24s var(--ease);
   }
   @media (min-width: 600px) {
     .modal-bg { align-items: center; padding: 20px; }
-    .modal-body {
-      max-height: 85vh; border-radius: 20px;
-      border: 1px solid rgba(52,211,153,0.2);
-      box-shadow: 0 32px 100px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04);
-    }
+    .modal-body { max-height: 85vh; border-radius: var(--radius-xl); border: 1px solid var(--line); }
   }
 
-  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: var(--radius-pill); }
 
   .heatmap-cell {
-    transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.12s;
-    cursor: pointer; border-radius: 5px !important;
+    position: relative; min-height: 0;
+    transition: transform 0.14s var(--ease);
+    cursor: pointer; border-radius: var(--radius-sm) !important;
     overflow: hidden;
   }
-  .heatmap-cell:hover { transform: scale(1.25); z-index: 2; box-shadow: 0 0 14px rgba(52,211,153,0.4) !important; }
-  .pulse { animation: pulse 2.2s ease-in-out infinite; }
-
-  /* Card glass surface */
-  .glass-card {
-    background: rgba(15,19,34,0.9);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 16px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-  .glass-card:hover { border-color: rgba(255,255,255,0.1); }
-
-  /* Gradient borders */
-  .border-sage { border-color: rgba(52,211,153,0.35) !important; }
-  .border-gold { border-color: rgba(251,191,36,0.35) !important; }
+  .heatmap-cell:hover { transform: scale(1.06); z-index: 2; }
 
   /* Button effects */
-  .btn-press { transition: transform 0.12s, opacity 0.12s; }
-  .btn-press:active { transform: scale(0.95) !important; opacity: 0.85; }
+  .btn-press { transition: transform 0.12s, opacity 0.12s, background 0.16s, border-color 0.16s; }
+  .btn-press:active { transform: scale(0.98) !important; opacity: 0.9; }
 
-  /* Streak fire badge */
-  .fire-badge {
-    animation: glow 2s ease-in-out infinite;
-    background: linear-gradient(135deg, #f59e0b, #ef4444);
-    border-radius: 4px;
-  }
+  /* Streak badge */
+  .fire-badge { line-height: 1; }
 
   /* Tab bar */
   .tab-bar {
     display: flex;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
     padding: 4px;
-    gap: 3px;
+    gap: 4px;
   }
   .tab-btn {
-    flex: 1; border: none; border-radius: 10px;
-    cursor: pointer; transition: all 0.22s cubic-bezier(0.34,1,0.64,1);
+    flex: 1; border: none; border-radius: var(--radius-md);
+    cursor: pointer; transition: background 0.18s, color 0.18s;
     font-family: inherit;
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 9px 6px;
-    font-size: 11px;
-    letter-spacing: 0.05em;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 40px; padding: 8px;
+    font-size: 13px;
     font-weight: 600;
     background: transparent;
-    color: rgba(148,163,184,0.7);
+    color: var(--ink-dim);
   }
-  .tab-btn.active {
-    background: rgba(52,211,153,0.12);
-    color: #34d399;
-    box-shadow: 0 1px 12px rgba(52,211,153,0.1), inset 0 1px 0 rgba(52,211,153,0.15);
-  }
-  .tab-btn:hover:not(.active) {
-    background: rgba(255,255,255,0.04);
-    color: rgba(240,242,248,0.7);
-  }
+  .tab-btn.active { background: var(--surface-raised); color: var(--sage); }
+  .tab-btn:hover:not(.active) { color: var(--ink); }
 
   /* Mood button */
-  .mood-btn { transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1); border-radius: 12px; }
-  .mood-btn:hover { transform: scale(1.06) translateY(-2px); }
-  .mood-btn.active { animation: pop 0.25s ease; }
+  .mood-btn { transition: background 0.16s, border-color 0.16s; border-radius: var(--radius-md); }
+  .mood-btn.active { animation: pop 0.2s var(--ease); }
 
   /* Input field */
   .field {
     width: 100%;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px;
-    color: #f0f2f8;
-    font-size: 13px;
+    background: var(--bg);
+    border: 1px solid var(--line-control);
+    border-radius: var(--radius-md);
+    color: var(--ink);
+    font-size: 16px;
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    padding: 10px 13px;
+    transition: border-color 0.16s;
+    padding: 12px;
     line-height: 1.5;
   }
-  .field:focus {
-    border-color: rgba(52,211,153,0.4);
-    box-shadow: 0 0 0 3px rgba(52,211,153,0.08);
-  }
-  .field::placeholder { color: rgba(148,163,184,0.45); }
+  .field:focus { border-color: var(--focus); outline: 2px solid var(--focus); outline-offset: 0; }
+  .field::placeholder { color: var(--ink-dim); opacity: 1; }
 
   /* Section header */
-  .section-tag {
-    font-size: 9.5px;
-    font-weight: 700;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    font-feature-settings: 'ss01';
-  }
+  .section-tag { font-size: 12px; font-weight: 700; letter-spacing: 0.02em; line-height: 18px; }
 
   /* Stat card */
   .stat-pill {
-    border-radius: 12px;
-    padding: 12px 10px;
+    border-radius: var(--radius-md);
+    padding: 12px 8px;
     text-align: center;
-    border: 1px solid rgba(255,255,255,0.06);
-    background: rgba(255,255,255,0.02);
-    transition: border-color 0.2s, background 0.2s;
-  }
-
-  /* Toggle button */
-  .toggle-btn {
-    border-radius: 10px;
-    padding: 10px 12px;
-    border: 1px solid rgba(255,255,255,0.07);
-    background: rgba(255,255,255,0.02);
-    color: rgba(148,163,184,0.7);
-    font-size: 11.5px;
-    font-weight: 500;
-    transition: all 0.18s cubic-bezier(0.34,1.3,0.64,1);
-    display: flex; align-items: center; gap: 7px;
-    cursor: pointer;
-  }
-  .toggle-btn.active {
-    background: rgba(52,211,153,0.1);
-    border-color: rgba(52,211,153,0.3);
-    color: #34d399;
-  }
-  .toggle-btn:hover:not(.active) {
-    border-color: rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.04);
-    color: #f0f2f8;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    transition: border-color 0.16s, background 0.16s;
   }
 
   /* Progress bar */
-  .progress-track {
-    height: 4px; border-radius: 2px;
-    background: rgba(255,255,255,0.06);
-    overflow: hidden;
-  }
-  .progress-fill {
-    height: 100%; border-radius: 2px;
-    transition: width 0.6s cubic-bezier(0.34,1,0.64,1);
-  }
+  .progress-track { height: 6px; border-radius: var(--radius-pill); background: var(--surface-raised); overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: var(--radius-pill); transition: width 0.5s var(--ease); }
 
   /* Accordion */
   .accordion-header {
     width: 100%; border: none; cursor: pointer;
     display: flex; justify-content: space-between; align-items: center;
-    padding: 14px 16px;
+    padding: 12px 16px;
     text-align: left;
     background: transparent;
     transition: background 0.15s;
-    border-radius: 12px;
   }
-  .accordion-header:hover { background: rgba(255,255,255,0.03); }
+  .accordion-header:hover { background: var(--surface-raised); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
 </style>
 </head>
 <body>
-
-<!-- Ambient orbs -->
-<div class="bg-orb" style="width:500px;height:500px;top:-200px;left:-150px;background:radial-gradient(circle,rgba(52,211,153,0.05) 0%,transparent 70%)"></div>
-<div class="bg-orb" style="width:400px;height:400px;bottom:-150px;right:-100px;background:radial-gradient(circle,rgba(34,211,238,0.04) 0%,transparent 70%)"></div>
 
 <div id="root"></div>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -246,6 +174,7 @@ const STORAGE_KEY_LEGACY_V6 = 'lifestyle-tracker-v6';
 const LAST_BACKUP_KEY = 'lifestyle-tracker-last-backup';
 const SNAPSHOT_KEY = 'lifestyle-tracker-snapshots';
 const SNAPSHOT_KEEP = 7;
+const RECOVERY_KEY = 'lifestyle-tracker-recovery';
 
 // ===== BACKUP HELPERS =====
 const localDateStr = (d = new Date()) => {
@@ -255,7 +184,12 @@ const localDateStr = (d = new Date()) => {
 const safeGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
 const safeSet = (k, v) => { try { localStorage.setItem(k, v); return true; } catch(e) { console.error(e); return false; } };
 const loadSnapshots = () => {
-  try { const v = JSON.parse(safeGet(SNAPSHOT_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
+  try {
+    const v = JSON.parse(safeGet(SNAPSHOT_KEY) || '[]');
+    if (!Array.isArray(v)) return [];
+    return v.filter(s => s && typeof s === 'object' && !Array.isArray(s))
+      .map(s => ({ ...s, date: typeof s.date === 'string' ? s.date : '', label: typeof s.label === 'string' ? s.label : undefined }));
+  } catch { return []; }
 };
 // 하루 한 번, 그날 처음 열었을 때의 데이터를 자동 스냅샷으로 보관 (최근 7개)
 const takeDailySnapshot = (data) => {
@@ -275,6 +209,30 @@ const pushSnapshot = (data, label) => {
     if (safeSet(SNAPSHOT_KEY, JSON.stringify(next.slice(0, n)))) return;
   }
 };
+// 읽을 수 없거나 형식이 어긋난 저장 데이터의 원문을 지우지 않고 따로 보관한다
+const listRecoveryKeys = () => {
+  try { return Object.keys(localStorage).filter(k => k.startsWith(RECOVERY_KEY)).sort(); } catch { return []; }
+};
+const downloadText = (text, name) => {
+  const blob = new Blob([text], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+const preserveRaw = (raw) => {
+  try {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(RECOVERY_KEY));
+    if (keys.some(k => localStorage.getItem(k) === raw)) return true;
+    let k = RECOVERY_KEY, n = 0;
+    while (localStorage.getItem(k) !== null) k = `${RECOVERY_KEY}-${Date.now()}-${++n}`;
+    localStorage.setItem(k, raw);
+    return true;
+  } catch (e) { console.error(e); return false; }
+};
+// 손상된 원문을 보관하지 못했다면 원문이 덮어써지지 않도록 저장을 멈춘다
+let storageLocked = false;
 // 백업 파일 검증: 객체이고 days가 객체여야 함. 래핑된 백업({app, data})도 허용
 const parseBackup = (text) => {
   const raw = JSON.parse(text);
@@ -335,16 +293,31 @@ const withAxesPaused = (data, ids, paused) => {
 };
 const daysSince = (iso) => iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 86400000) : null;
 
-// ===== REDESIGNED COLOR SYSTEM =====
+// ===== COLOR SYSTEM =====
 const C = {
-  bg: '#080b14', bg2: '#0f1322', bg3: '#161c30',
-  ink: '#f0f2f8', inkDim: '#64748b', inkMid: '#94a3b8', line: 'rgba(255,255,255,0.07)',
-  sage: '#34d399', gold: '#fbbf24', teal: '#22d3ee',
-  rust: '#f87171', plum: '#a78bfa', slate: '#94a3b8',
-  sageDim: 'rgba(52,211,153,0.1)', goldDim: 'rgba(251,191,36,0.1)',
-  tealDim: 'rgba(34,211,238,0.1)', rustDim: 'rgba(248,113,113,0.1)',
-  plumDim: 'rgba(167,139,250,0.1)', slateDim: 'rgba(148,163,184,0.1)',
+  bg: '#0e1214', bg2: '#161b1e', bg3: '#1f2629',
+  ink: '#eef2ef', inkDim: '#97a29c', inkMid: '#c0c9c4', line: 'rgba(255,255,255,0.09)',
+  sage: '#7fd1a8', gold: '#e5bd6b', teal: '#6fc7cc',
+  rust: '#ee9580', plum: '#bda8e8', slate: '#a7b2bb',
+  onAccent: '#0e1214',
+  sageDim: 'rgba(127,209,168,0.12)', goldDim: 'rgba(229,189,107,0.12)',
+  tealDim: 'rgba(111,199,204,0.12)', rustDim: 'rgba(238,149,128,0.12)',
+  plumDim: 'rgba(189,168,232,0.12)', slateDim: 'rgba(167,178,187,0.12)',
 };
+
+// 이전 버전에서 저장된 항목 색상을 새 팔레트로 옮긴다 (기록 내용은 변경하지 않음)
+const LEGACY_COLORS = {
+  '#34d399': C.sage, '#fbbf24': C.gold, '#22d3ee': C.teal,
+  '#f87171': C.rust, '#a78bfa': C.plum, '#94a3b8': C.slate,
+};
+const newColor = (c) => {
+  const key = typeof c === 'string' ? c.toLowerCase() : '';
+  return Object.hasOwn(LEGACY_COLORS, key) ? LEGACY_COLORS[key] : c;
+};
+const recolor = (items) => Array.isArray(items)
+  ? items.map(it => it && newColor(it.color) !== it.color ? { ...it, color: newColor(it.color) } : it)
+  : items;
+const applyPalette = (d) => ({ ...d, axes: recolor(d.axes), exerciseTypes: recolor(d.exerciseTypes) });
 
 const Ic = ({ d, size = 14, color = 'currentColor', strokeWidth = 1.8 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
@@ -704,6 +677,81 @@ const initialData = () => ({
   weeklyReviews: {}
 });
 
+// 저장 데이터의 형식을 화면이 기대하는 형태로 맞춘다.
+// 올바른 값은 그대로 두고, 고치거나 버린 값이 있을 때만 fix.changed를 켠다.
+const isRecord = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+const makeFixer = () => {
+  const fix = { changed: false };
+  const mark = (v) => { fix.changed = true; return v; };
+  // 화면에 글자로 표시되는 값: 문자열이 아니면 글자로 바꾼다 (없으면 그대로)
+  fix.text = (v) => (v === null || v === undefined || typeof v === 'string') ? v
+    : mark(typeof v === 'number' || typeof v === 'boolean' ? String(v) : '');
+  // 숫자로 계산하는 값: 숫자가 아니면 비운다
+  fix.num = (v, empty) => (v === null || v === undefined || (typeof v === 'number' && Number.isFinite(v))) ? v
+    : mark(Number.isFinite(Number(v)) && v !== '' && typeof v !== 'object' ? Number(v) : empty);
+  fix.list = (v, keep, fallback) => {
+    if (!Array.isArray(v)) return v === undefined ? fallback : mark(fallback);
+    const out = v.filter(keep);
+    if (out.length !== v.length) mark();
+    return out;
+  };
+  fix.records = (v, fallback) => fix.list(v, isRecord, fallback);
+  fix.object = (v) => isRecord(v) ? v : (v === undefined ? {} : mark({}));
+  fix.field = (obj, key, fn) => (key in obj ? { [key]: fn(obj[key]) } : {});
+  return fix;
+};
+const isText = (v) => typeof v === 'string';
+const normalizeWith = (fix, d) => {
+  const T = fix.text;
+  const day = (x) => {
+    const exercises = Array.isArray(x.exerciseTypes) ? fix.list(x.exerciseTypes, isText, [])
+      : ('exerciseTypes' in x ? mark(isText(x.exerciseType) ? [x.exerciseType] : []) : undefined);
+    return {
+      ...x,
+      axes: 'axes' in x ? fix.list(x.axes, isText, []) : [],
+      ...(exercises !== undefined ? { exerciseTypes: exercises } : {}),
+      ...fix.field(x, 'exerciseType', v => (v === null || isText(v)) ? v : mark(null)),
+      ...fix.field(x, 'note', T), ...fix.field(x, 'journal', T),
+      ...fix.field(x, 'sleepHrs', v => fix.num(v, null)),
+      ...fix.field(x, 'mood', v => fix.num(v, null)),
+      ...fix.field(x, 'selfQ', fix.object),
+    };
+  };
+  const mark = (v) => { fix.changed = true; return v; };
+  const recordMap = (obj, fn) => {
+    const src = fix.object(obj);
+    return Object.fromEntries(Object.entries(src).filter(([, v]) => isRecord(v) || mark(false)).map(([k, v]) => [k, fn(v)]));
+  };
+  const icon = (v) => (isText(v) && Object.hasOwn(i, v)) ? v : mark('more');
+  const item = (x) => ({ ...x, ...fix.field(x, 'id', T), ...fix.field(x, 'label', T), ...fix.field(x, 'sub', T), ...fix.field(x, 'icon', icon), ...fix.field(x, 'color', T) });
+  const isDateStr = (v) => isText(v) && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  // 주간 계획 날짜와 보류 기간: 날짜 형식이 아니면 버린다
+  const guideTask = (g) => {
+    const out = { ...g, ...fix.field(g, 'id', T), ...fix.field(g, 'label', T), ...fix.field(g, 'week', v => fix.num(v, 0)), ...fix.field(g, 'text', T) };
+    if ('date' in g && !isDateStr(g.date)) { mark(); delete out.date; }
+    if (out.date && !isText(out.text)) out.text = isText(out.label) ? out.label : '';
+    if (!out.date && !isText(out.label)) out.label = isText(out.text) ? out.text : '';
+    return out;
+  };
+  const pausePeriod = (p) => isRecord(p) && isDateStr(p.start) && (p.end === null || p.end === undefined || isDateStr(p.end));
+  return {
+    ...d,
+    days: recordMap(d.days, day),
+    axes: fix.records(d.axes, DEFAULT_AXES).map(item).map(a => 'paused' in a && typeof a.paused !== 'boolean' ? mark({ ...a, paused: !!a.paused }) : a),
+    exerciseTypes: fix.records(d.exerciseTypes, DEFAULT_EXERCISE_TYPES).map(item),
+    books: fix.records(d.books, []).map(b => ({ ...b, ...fix.field(b, 'title', T), ...fix.field(b, 'author', T), ...fix.field(b, 'axis', T),
+      ...fix.field(b, 'progress', v => fix.num(v, 0)), ...fix.field(b, 'total', v => fix.num(v, 0)) })),
+    guideTasks: fix.records(d.guideTasks, []).map(guideTask),
+    pauseLog: fix.list(d.pauseLog, pausePeriod, []),
+    guideTasksDone: fix.object(d.guideTasksDone),
+    weeklyReviews: recordMap(d.weeklyReviews, rv => ({ ...rv, ...fix.field(rv, 'best', T), ...fix.field(rv, 'hardest', T), ...fix.field(rv, 'nextWeek', T) })),
+  };
+};
+const normalizeData = (d) => normalizeWith(makeFixer(), d);
+// 데이터를 정리하고, 실제로 고치거나 버린 값이 있었는지도 함께 알려 준다
+const inspectData = (d) => { const fix = makeFixer(); const data = normalizeWith(fix, d); return { data, changed: fix.changed }; };
+const prepareData = (d) => applyPalette(normalizeData(d));
+
 const todayStr = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -782,12 +830,12 @@ function Modal({ open, onClose, title, children }) {
           display:'flex', justifyContent:'space-between', alignItems:'center',
           padding:'16px 20px', borderBottom:`1px solid ${C.line}`,
           position:'sticky', top:0, background: C.bg2, zIndex:1,
-          borderRadius: '16px 16px 0 0',
+          borderRadius:'16px 16px 0 0',
         }}>
-          <span style={{ fontSize:13, fontWeight:700, color:C.ink, letterSpacing:'0.05em' }}>{title}</span>
+          <span style={{ fontSize:14, fontWeight:700, color:C.ink, letterSpacing:'0.02em' }}>{title}</span>
           <button onClick={onClose} style={{
             background:'rgba(255,255,255,0.05)', border:'none', color:C.inkMid,
-            cursor:'pointer', padding:7, borderRadius:8,
+            cursor:'pointer', width:36, height:36, borderRadius:8,
             display:'flex', alignItems:'center', justifyContent:'center',
             transition:'background 0.15s',
           }}>
@@ -813,29 +861,27 @@ function StreakBanner({ streaks }) {
         <div key={it.label} style={{
           background: it.value > 0 ? it.dim : 'rgba(255,255,255,0.02)',
           border: `1px solid ${it.value > 0 ? it.color + '40' : C.line}`,
-          borderRadius:14, padding:'12px 8px', textAlign:'center',
+          borderRadius:16, padding:'12px 8px', textAlign:'center',
           position:'relative', overflow:'hidden',
           transition:'all 0.2s',
         }}>
           {it.value >= 7 && (
-            <div className="pulse fire-badge" style={{
-              position:'absolute', top:6, right:6, padding:'2px 5px',
-              fontSize:8, fontWeight:800, color:'#fff',
-              letterSpacing:'0.05em',
+            <div className="fire-badge" style={{
+              position:'absolute', top:6, right:6, fontSize:12,
             }}>🔥</div>
           )}
           <div style={{display:'flex', justifyContent:'center', alignItems:'center', gap:4, marginBottom:4}}>
-            <Ic d={i[it.icon]} size={11} color={it.value > 0 ? it.color : C.inkDim} />
+            <Ic d={i[it.icon]} size={12} color={it.value > 0 ? it.color : C.inkDim} />
             <span style={{
-              fontSize:9, fontWeight:700, color: it.value > 0 ? it.color : C.inkDim,
-              letterSpacing:'0.15em', textTransform:'uppercase',
+              fontSize:11, fontWeight:700, color: it.value > 0 ? it.color : C.inkDim,
+              letterSpacing:'0.02em',
             }}>{it.label}</span>
           </div>
           <div style={{
-            fontSize:22, fontWeight:800, color: it.value > 0 ? it.color : C.inkDim,
+            fontSize:24, fontWeight:700, color: it.value > 0 ? it.color : C.inkDim,
             lineHeight:1, fontVariantNumeric:'tabular-nums',
           }}>
-            {it.value}<span style={{fontSize:11, color:C.inkDim, fontWeight:400, marginLeft:2}}>일</span>
+            {it.value}<span style={{fontSize:12, color:C.inkDim, fontWeight:400, marginLeft:2}}>일</span>
           </div>
         </div>
       ))}
@@ -849,36 +895,35 @@ function DailySelfQuestion({ todayData, updateToday }) {
   const setAnswer = (qid, val) => updateToday({ selfQ: { ...selfQ, [qid]: val } });
   return (
     <div style={{
-      background: C.bg2, border:`1px solid rgba(251,191,36,0.2)`,
-      borderRadius:16, padding:'20px', marginBottom:14,
-      boxShadow:`0 0 30px rgba(251,191,36,0.03)`,
+      background: C.bg2, border:`1px solid rgba(229,189,107,0.2)`,
+      borderRadius:16, padding:'20px', marginBottom:16,
     }}>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
-        <div style={{display:'flex', alignItems:'center', gap:7}}>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
+        <div style={{display:'flex', alignItems:'center', gap:8}}>
           <Ic d={i.target} size={14} color={C.gold} />
           <span className="section-tag" style={{color:C.gold}}>하루의 갈무리</span>
         </div>
-        <span style={{fontSize:11, color:C.inkDim, fontStyle:'italic'}}>"연극을 마친 배우처럼"</span>
+        <span style={{fontSize:12, color:C.inkDim}}>"연극을 마친 배우처럼"</span>
       </div>
-      <p style={{fontSize:12, color:C.inkDim, lineHeight:1.6, marginBottom:16, fontStyle:'italic'}}>
+      <p style={{fontSize:13, color:C.inkDim, lineHeight:1.6, marginBottom:16}}>
         매일 밤, 세 가지 질문에 답하며 하루를 마무리하세요.
       </p>
       {SELF_QUESTIONS.map((sq, idx) => {
         const ans = selfQ[sq.id] ?? null;
         return (
-          <div key={sq.id} style={{marginBottom: idx < SELF_QUESTIONS.length-1 ? 16 : 0}}>
-            <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:7}}>
+          <div key={sq.id} style={{marginBottom: idx < SELF_QUESTIONS.length-1 ? 20 : 0}}>
+            <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:8}}>
               <span style={{
-                fontSize:9.5, fontWeight:700, color:sq.color,
-                padding:'2px 9px', border:`1px solid ${sq.color}40`,
-                borderRadius:20, background:`${sq.color}12`,
-                letterSpacing:'0.1em',
+                fontSize:11, fontWeight:700, color:sq.color,
+                padding:'2px 8px', border:`1px solid ${sq.color}40`,
+                borderRadius:999, background:`${sq.color}12`,
+                letterSpacing:'0.02em',
               }}>{sq.dim}</span>
             </div>
-            <p style={{fontSize:12.5, color:C.ink, lineHeight:1.6, marginBottom:8, fontStyle:'italic'}}>
+            <p style={{fontSize:13, color:C.ink, lineHeight:1.6, marginBottom:8}}>
               {sq.q}
             </p>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6}}>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8}}>
               {[
                 { v: 'yes', l: '응', col: C.sage },
                 { v: 'partial', l: '반쯤', col: C.gold },
@@ -888,12 +933,11 @@ function DailySelfQuestion({ todayData, updateToday }) {
                 return (
                   <button key={opt.v} onClick={() => setAnswer(sq.id, active ? null : opt.v)}
                     className="btn-press" style={{
-                      padding:'8px 6px', borderRadius:10,
+                      padding:'8px 8px', borderRadius:12,
                       background: active ? `${opt.col}18` : 'rgba(255,255,255,0.02)',
                       border: `1px solid ${active ? opt.col + '60' : C.line}`,
                       color: active ? opt.col : C.inkDim,
-                      fontSize:11, fontWeight: active ? 700 : 500,
-                      boxShadow: active ? `0 0 16px ${opt.col}20` : 'none',
+                      fontSize:12, fontWeight: active ? 700 : 500,
                   }}>{opt.l}</button>
                 );
               })}
@@ -902,12 +946,11 @@ function DailySelfQuestion({ todayData, updateToday }) {
         );
       })}
       <div style={{
-        padding:'12px 14px', borderRadius:10,
-        background:'rgba(52,211,153,0.05)',
-        borderLeft:`2px solid ${C.sage}60`,
-        fontSize:11, color:C.inkDim, lineHeight:1.5, marginTop:14,
+        padding:'12px 16px', borderRadius:12,
+        background:'rgba(127,209,168,0.05)',
+        fontSize:12, color:C.inkDim, lineHeight:1.5, marginTop:16,
       }}>
-        <span style={{color:C.sage, fontWeight:700, fontSize:9.5, letterSpacing:'0.15em', textTransform:'uppercase', display:'block', marginBottom:4}}>회복 노트</span>
+        <span style={{color:C.sage, fontWeight:700, fontSize:11, letterSpacing:'0.02em', display:'block', marginBottom:4}}>회복 노트</span>
         "아니"가 많은 날도 데이터예요. <b style={{color:C.ink}}>지치지 않는 정교한 일상이 가장 날카로운 무기.</b>
       </div>
     </div>
@@ -919,31 +962,28 @@ function CodexCard({ entry, openId, setOpenId }) {
   const isOpen = openId === entry.id;
   const d = entry.data;
   const statusColors = { strong: C.sage, good: C.teal, ok: C.gold, caution: C.gold, warn: C.rust, neutral: C.slate };
-  const statusBg = { strong: 'rgba(52,211,153,0.08)', good: 'rgba(34,211,238,0.08)', ok: 'rgba(251,191,36,0.08)', caution: 'rgba(251,191,36,0.08)', warn: 'rgba(248,113,113,0.08)', neutral: 'rgba(148,163,184,0.06)' };
+  const statusBg = { strong: 'rgba(127,209,168,0.08)', good: 'rgba(111,199,204,0.08)', ok: 'rgba(229,189,107,0.08)', caution: 'rgba(229,189,107,0.08)', warn: 'rgba(238,149,128,0.08)', neutral: 'rgba(167,178,187,0.06)' };
   return (
     <div style={{
-      background: C.bg2, border:`1px solid ${C.line}`,
-      borderRadius:14, marginBottom:8, overflow:'hidden',
+      background: C.bg2, border:`1px solid ${isOpen ? entry.color + '40' : C.line}`,
+      borderRadius:16, marginBottom:8, overflow:'hidden',
       transition:'border-color 0.2s',
-      ...(isOpen && { borderColor: `${entry.color}40` }),
     }}>
       <button className="accordion-header" onClick={() => setOpenId(isOpen ? null : entry.id)} style={{
-        borderLeft:`3px solid ${entry.color}`,
-        borderRadius:'12px 0 0 12px',
       }}>
         <div style={{display:'flex', alignItems:'center', gap:12, flex:1, minWidth:0}}>
           <div style={{
-            width:36, height:36, borderRadius:10, flexShrink:0,
+            width:36, height:36, borderRadius:12, flexShrink:0,
             background:`${entry.color}15`, border:`1px solid ${entry.color}30`,
             display:'flex', alignItems:'center', justifyContent:'center',
           }}>
             <Ic d={i[entry.icon]} size={16} color={entry.color} />
           </div>
           <div style={{minWidth:0}}>
-            <div style={{fontSize:13, fontWeight:700, color:C.ink, marginBottom:2}}>{entry.title}</div>
+            <div style={{fontSize:14, fontWeight:700, color:C.ink, marginBottom:2}}>{entry.title}</div>
             <div style={{
-              fontSize:10.5, fontWeight:600, color:entry.color,
-              background:`${entry.color}12`, padding:'1px 8px', borderRadius:20,
+              fontSize:11, fontWeight:600, color:entry.color,
+              background:`${entry.color}12`, padding:'2px 8px', borderRadius:999,
               display:'inline-block',
             }}>{entry.subtitle}</div>
           </div>
@@ -953,29 +993,28 @@ function CodexCard({ entry, openId, setOpenId }) {
         </div>
       </button>
       {isOpen && (
-        <div style={{padding:'0 16px 18px', borderTop:`1px solid ${C.line}`}}>
+        <div style={{padding:'0 16px 20px', borderTop:`1px solid ${C.line}`}}>
           {/* Main message */}
           <div style={{
-            marginTop:14, padding:'14px',
+            marginTop:16, padding:'16px',
             background: statusBg[d.status] || statusBg.neutral,
-            borderRadius:10, borderLeft:`3px solid ${entry.color}`,
-            marginBottom:12,
+            borderRadius:12,            marginBottom:12,
           }}>
-            <p style={{fontSize:13, color:C.ink, lineHeight:1.65}}>{d.message}</p>
+            <p style={{fontSize:14, color:C.ink, lineHeight:1.65}}>{d.message}</p>
           </div>
           {/* Today's challenge */}
           <div style={{
-            padding:'12px 14px', borderRadius:10,
+            padding:'12px 16px', borderRadius:12,
             background:'rgba(255,255,255,0.02)',
             border:`1px dashed ${entry.color}50`,
           }}>
             <div style={{
-              fontSize:9.5, fontWeight:700, letterSpacing:'0.15em', textTransform:'uppercase',
-              color:entry.color, marginBottom:6, display:'flex', alignItems:'center', gap:5,
+              fontSize:11, fontWeight:700, letterSpacing:'0.02em',
+              color:entry.color, marginBottom:8, display:'flex', alignItems:'center', gap:4,
             }}>
-              <Ic d={i.target} size={10} color={entry.color} /> 오늘의 과제
+              <Ic d={i.target} size={12} color={entry.color} /> 오늘의 과제
             </div>
-            <p style={{fontSize:12.5, color:C.inkMid, lineHeight:1.55, fontStyle:'italic'}}>{d.challenge}</p>
+            <p style={{fontSize:13, color:C.inkMid, lineHeight:1.55}}>{d.challenge}</p>
           </div>
         </div>
       )}
@@ -984,7 +1023,8 @@ function CodexCard({ entry, openId, setOpenId }) {
 }
 
 // ===== MONTHLY HEATMAP =====
-function MonthlyHeatmap({ days, axes }) {
+const HEAT_DARK_TEXT_FROM = 3;
+function MonthlyHeatmap({ days, axes, exerciseTypes }) {
   const [offset, setOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState(null);
   const d0 = new Date(); d0.setMonth(d0.getMonth() + offset); d0.setDate(1); d0.setHours(0,0,0,0);
@@ -1014,40 +1054,42 @@ function MonthlyHeatmap({ days, axes }) {
 
   const getColor = (intensity) => {
     if (!intensity || intensity === 0) return 'rgba(255,255,255,0.03)';
-    const opacity = Math.min(0.15 + (intensity / 5) * 0.75, 0.9);
-    return `rgba(52,211,153,${opacity})`;
+    const opacity = intensity < HEAT_DARK_TEXT_FROM ? 0.15 + (intensity / 5) * 0.6 : 0.6 + ((intensity - HEAT_DARK_TEXT_FROM) / 2) * 0.3;
+    return `rgba(127,209,168,${opacity})`;
   };
 
   const selected = selectedDate ? days[selectedDate] : null;
+  const selectedExercises = !selected ? [] : (selected.exerciseTypes?.length ? selected.exerciseTypes : (selected.exerciseType ? [selected.exerciseType] : []));
+  const exerciseLabel = (id) => exerciseTypes.find(t => t.id === id)?.label || id;
 
   return (
-    <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:18, marginBottom:14}}>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
+    <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:20, marginBottom:16}}>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
         <button onClick={() => setOffset(offset-1)} style={{
           background:'rgba(255,255,255,0.04)', border:`1px solid ${C.line}`, color:C.inkMid,
-          padding:'6px 10px', borderRadius:8, cursor:'pointer', display:'flex', alignItems:'center',
+          width:36, height:36, borderRadius:8, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
         }}>
-          <Ic d={i.chevronLeft} size={12} />
+          <Ic d={i.chevronLeft} size={14} />
         </button>
-        <span style={{fontSize:16, fontWeight:700, color:C.ink, letterSpacing:'0.05em'}}>{monthLabel}</span>
+        <span style={{fontSize:16, fontWeight:700, color:C.ink, letterSpacing:'0.02em'}}>{monthLabel}</span>
         <button onClick={() => setOffset(Math.min(0, offset+1))} disabled={offset===0} style={{
           background:'rgba(255,255,255,0.04)', border:`1px solid ${C.line}`,
-          color: offset===0 ? C.line : C.inkMid, padding:'6px 10px', borderRadius:8,
-          cursor: offset===0 ? 'not-allowed' : 'pointer', opacity: offset===0 ? 0.3 : 1, display:'flex', alignItems:'center',
+          color: offset===0 ? C.line : C.inkMid, width:36, height:36, borderRadius:8,
+          cursor: offset===0 ? 'not-allowed' : 'pointer', opacity: offset===0 ? 0.3 : 1, display:'flex', alignItems:'center', justifyContent:'center',
         }}>
-          <Ic d={i.chevronRight} size={12} />
+          <Ic d={i.chevronRight} size={14} />
         </button>
       </div>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3, marginBottom:6}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:4, marginBottom:8}}>
         {['월','화','수','목','금','토','일'].map((d, idx) => (
           <div key={d} style={{
-            textAlign:'center', fontSize:9, fontWeight:600,
-            color: idx >= 5 ? C.gold+'80' : C.inkDim,
-            letterSpacing:'0.05em', padding:'3px 0',
+            textAlign:'center', fontSize:11, fontWeight:600,
+            color: idx >= 5 ? C.gold : C.inkDim,
+            letterSpacing:'0.02em', padding:'4px 0',
           }}>{d}</div>
         ))}
       </div>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:3, marginBottom:12}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:4, marginBottom:12}}>
         {cells.map((day, idx) => {
           if (!day) return <div key={idx} />;
           const info = getDayInfo(day);
@@ -1059,9 +1101,8 @@ function MonthlyHeatmap({ days, axes }) {
                 aspectRatio:'1', background:color,
                 border:`1px solid ${info?.isToday ? C.sage+'80' : (isSelected ? C.gold+'80' : 'rgba(255,255,255,0.06)')}`,
                 cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-                padding:0, fontSize:10, fontWeight: info?.isToday ? 800 : 500,
-                color: info?.intensity > 2.5 ? '#0a0c14' : (info?.isToday ? C.sage : C.inkMid),
-                boxShadow: info?.isToday ? `0 0 8px ${C.sage}40` : 'none',
+                padding:0, fontSize:11, fontWeight: info?.isToday ? 700 : 500,
+                color: info?.intensity >= HEAT_DARK_TEXT_FROM ? C.onAccent : C.ink,
               }}>
               {day}
               {info?.data?.exerciseType === 'pt' && <div style={{position:'absolute', top:1, right:1, width:3, height:3, background:C.gold, borderRadius:'50%'}} />}
@@ -1069,32 +1110,32 @@ function MonthlyHeatmap({ days, axes }) {
           );
         })}
       </div>
-      <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:6, fontSize:9, color:C.inkDim, marginBottom:selected ? 12 : 0}}>
+      <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:8, fontSize:11, color:C.inkDim, marginBottom:selected ? 12 : 0}}>
         <span>적음</span>
         {[0,1,2,3,4,5].map(v => (
-          <div key={v} style={{width:12, height:12, background:getColor(v), borderRadius:3, border:`1px solid rgba(255,255,255,0.05)`}} />
+          <div key={v} style={{width:12, height:12, background:getColor(v), borderRadius:4, border:`1px solid rgba(255,255,255,0.05)`}} />
         ))}
         <span>많음</span>
       </div>
       {selected && (
         <div style={{
-          padding:'12px 14px', borderRadius:10,
+          padding:'12px 16px', borderRadius:12,
           background:'rgba(255,255,255,0.02)', border:`1px dashed ${C.gold}50`,
-          fontSize:12, color:C.ink, lineHeight:1.6,
+          fontSize:13, color:C.ink, lineHeight:1.6,
         }}>
-          <div className="section-tag" style={{color:C.gold, marginBottom:6}}>{fmt(selectedDate)}</div>
+          <div className="section-tag" style={{color:C.gold, marginBottom:8}}>{fmt(selectedDate)}</div>
           {selected.axes?.length > 0 && (
-            <div style={{display:'flex', gap:5, flexWrap:'wrap', marginBottom:6}}>
+            <div style={{display:'flex', gap:4, flexWrap:'wrap', marginBottom:8}}>
               {selected.axes.map(aid => {
                 const ax = axes.find(a => a.id === aid);
                 if (!ax) return null;
-                return <span key={aid} style={{fontSize:10, padding:'2px 8px', borderRadius:20, background:`${ax.color}18`, border:`1px solid ${ax.color}40`, color:ax.color}}>{ax.label}</span>;
+                return <span key={aid} style={{fontSize:11, padding:'2px 8px', borderRadius:999, background:`${ax.color}18`, border:`1px solid ${ax.color}40`, color:ax.color}}>{ax.label}</span>;
               })}
             </div>
           )}
-          {selected.exerciseType && <div style={{fontSize:11.5, color:C.teal}}>운동: {EXERCISE_TYPES.find(t => t.id === selected.exerciseType)?.label}</div>}
-          {selected.mood && <div style={{fontSize:11.5}}>{MOODS.find(m => m.v === selected.mood)?.emoji} {MOODS.find(m => m.v === selected.mood)?.label}</div>}
-          {selected.note && <div style={{fontSize:11.5, color:C.inkDim, fontStyle:'italic', marginTop:4}}>"{selected.note}"</div>}
+          {selectedExercises.length > 0 && <div style={{fontSize:12, color:C.teal}}>운동: {selectedExercises.map(exerciseLabel).join(', ')}</div>}
+          {selected.mood && <div style={{fontSize:12}}>{MOODS.find(m => m.v === selected.mood)?.emoji} {MOODS.find(m => m.v === selected.mood)?.label}</div>}
+          {selected.note && <div style={{fontSize:12, color:C.inkDim, marginTop:4}}>"{selected.note}"</div>}
         </div>
       )}
     </div>
@@ -1111,13 +1152,12 @@ function SundayReview({ data, saveData, isSunday, forceShow }) {
   return (
     <div style={{
       background:C.bg2, border:`2px solid ${C.gold}50`,
-      borderRadius:16, padding:'18px 20px', marginBottom:14,
-      boxShadow:`0 0 40px ${C.gold}08`,
+      borderRadius:16, padding:'20px 20px', marginBottom:16,
     }}>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: open ? 16 : 0, gap:10}}>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: open ? 16 : 0, gap:12}}>
         <div>
-          <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:4}}>
-            <Ic d={i.calendar} size={13} color={C.gold} />
+          <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:4}}>
+            <Ic d={i.calendar} size={14} color={C.gold} />
             <span className="section-tag" style={{color:C.gold}}>일요일 회고</span>
           </div>
           <div style={{fontSize:14, color:C.ink, fontWeight:700}}>
@@ -1125,9 +1165,9 @@ function SundayReview({ data, saveData, isSunday, forceShow }) {
           </div>
         </div>
         <button onClick={() => setOpen(!open)} className="btn-press" style={{
-          background:'rgba(251,191,36,0.1)', border:`1px solid ${C.gold}40`,
-          color:C.gold, padding:'5px 12px', borderRadius:8,
-          fontSize:11, fontWeight:600, cursor:'pointer',
+          background:'rgba(229,189,107,0.1)', border:`1px solid ${C.gold}40`,
+          color:C.gold, minHeight:36, padding:'4px 12px', borderRadius:8,
+          fontSize:12, fontWeight:600, cursor:'pointer',
         }}>{open ? '접기' : '펼치기'}</button>
       </div>
       {open && (
@@ -1138,12 +1178,11 @@ function SundayReview({ data, saveData, isSunday, forceShow }) {
             { field:'nextWeek', label:'다음 주 한 가지 다르게 할 것', placeholder:'딱 한 가지만. 작아도 OK.', color:C.gold },
           ].map(({ field, label, placeholder, color }) => (
             <div key={field} style={{marginBottom:12}}>
-              <label style={{fontSize:10, fontWeight:600, color:color, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6, display:'block'}}>{label}</label>
-              <textarea value={review[field]} onChange={e => update(field, e.target.value)} placeholder={placeholder} rows={2} className="field"
-                style={{borderColor:`${color}20`}} />
+              <label style={{fontSize:11, fontWeight:600, color:color, letterSpacing:'0.02em', marginBottom:8, display:'block'}}>{label}</label>
+              <textarea value={review[field]} onChange={e => update(field, e.target.value)} placeholder={placeholder} rows={2} className="field" />
             </div>
           ))}
-          <p style={{fontSize:11, color:C.inkDim, fontStyle:'italic', marginTop:4}}>"5분이면 충분합니다. 자동 저장돼요."</p>
+          <p style={{fontSize:12, color:C.inkDim, marginTop:4}}>"5분이면 충분합니다. 자동 저장돼요."</p>
         </div>
       )}
     </div>
@@ -1155,21 +1194,20 @@ function PastReviews({ reviews }) {
   const sortedKeys = Object.keys(reviews).sort().reverse();
   if (sortedKeys.length === 0) return null;
   return (
-    <div style={{marginBottom:14}}>
-      <div className="section-tag" style={{color:C.sage, marginBottom:10}}>지난 회고</div>
+    <div style={{marginBottom:16}}>
+      <div className="section-tag" style={{color:C.sage, marginBottom:12}}>지난 회고</div>
       {sortedKeys.slice(0, 4).map(key => {
         const r = reviews[key];
         if (!r.best && !r.hardest && !r.nextWeek) return null;
         return (
           <div key={key} style={{
-            background:C.bg2, border:`1px solid ${C.line}`,
-            borderLeft:`3px solid ${C.gold}`, borderRadius:'0 10px 10px 0',
-            padding:'12px 16px', marginBottom:6,
+            background:C.bg2, border:`1px solid ${C.line}`, borderRadius:12,
+            padding:'12px 16px', marginBottom:8,
           }}>
             <div className="section-tag" style={{color:C.gold, marginBottom:8}}>{key}</div>
-            {r.best && <div style={{fontSize:12, color:C.ink, marginBottom:4, paddingLeft:12, borderLeft:`2px solid ${C.sage}40`, lineHeight:1.5}}><span style={{color:C.sage, fontSize:10, marginRight:6}}>✓</span>{r.best}</div>}
-            {r.hardest && <div style={{fontSize:12, color:C.ink, marginBottom:4, paddingLeft:12, borderLeft:`2px solid ${C.rust}40`, lineHeight:1.5}}><span style={{color:C.rust, fontSize:10, marginRight:6}}>✗</span>{r.hardest}</div>}
-            {r.nextWeek && <div style={{fontSize:12, color:C.ink, paddingLeft:12, borderLeft:`2px solid ${C.gold}40`, lineHeight:1.5}}><span style={{color:C.gold, fontSize:10, marginRight:6}}>→</span>{r.nextWeek}</div>}
+            {r.best && <div style={{fontSize:13, color:C.ink, marginBottom:4, lineHeight:1.5}}><span style={{color:C.sage, fontSize:11, marginRight:6}}>✓</span>{r.best}</div>}
+            {r.hardest && <div style={{fontSize:13, color:C.ink, marginBottom:4, lineHeight:1.5}}><span style={{color:C.rust, fontSize:11, marginRight:6}}>✗</span>{r.hardest}</div>}
+            {r.nextWeek && <div style={{fontSize:13, color:C.ink, lineHeight:1.5}}><span style={{color:C.gold, fontSize:11, marginRight:6}}>→</span>{r.nextWeek}</div>}
           </div>
         );
       })}
@@ -1199,12 +1237,12 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
     <div>
       {/* Status banner */}
       <div style={{
-        padding:'10px 14px', borderRadius:10,
-        background:'rgba(52,211,153,0.06)', border:`1px solid ${C.sage}30`,
-        fontSize:12.5, color:C.inkMid, lineHeight:1.5, marginBottom:14,
+        padding:'12px 16px', borderRadius:12,
+        background:'rgba(127,209,168,0.06)', border:`1px solid ${C.sage}30`,
+        fontSize:13, color:C.inkMid, lineHeight:1.5, marginBottom:16,
         display:'flex', alignItems:'center', gap:8,
       }}>
-        <Ic d={i.sparkles} size={13} color={C.sage} />
+        <Ic d={i.sparkles} size={14} color={C.sage} />
         {dToStart > 0
           ? <span>D-{dToStart} · 5/4(월) 시작까지. <b style={{color:C.ink}}>이번주는 평소대로 OK</b></span>
           : dToStart === 0
@@ -1215,16 +1253,16 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
       {isSunday && <SundayReview data={data} saveData={saveData} isSunday={isSunday} />}
 
       {/* Today card */}
-      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'20px', marginBottom:14}}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18}}>
+      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'20px', marginBottom:16}}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
           <span className="section-tag" style={{color:C.sage}}>오늘의 기록</span>
-          <span style={{fontSize:11, color:C.inkDim, fontStyle:'italic'}}>Today's Log</span>
+          <span style={{fontSize:12, color:C.inkDim}}>Today's Log</span>
         </div>
 
         {/* Mood */}
-        <div style={{marginBottom:18}}>
+        <div style={{marginBottom:20}}>
           <div className="section-tag" style={{color:C.inkDim, marginBottom:8}}>오늘 기분</div>
-          <div style={{display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:5}}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:4}}>
             {MOODS.map(m => {
               const active = todayData.mood === m.v;
               return (
@@ -1232,12 +1270,11 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
                   className={`mood-btn ${active ? 'active' : ''}`} style={{
                     background: active ? `${m.color}18` : 'rgba(255,255,255,0.02)',
                     border:`1px solid ${active ? m.color+'60' : C.line}`,
-                    padding:'9px 4px', cursor:'pointer',
-                    display:'flex', flexDirection:'column', alignItems:'center', gap:3,
-                    boxShadow: active ? `0 0 20px ${m.color}20` : 'none',
+                    padding:'8px 4px', cursor:'pointer',
+                    display:'flex', flexDirection:'column', alignItems:'center', gap:4,
                   }}>
-                  <span style={{fontSize:20}}>{m.emoji}</span>
-                  <span style={{fontSize:9.5, color:active ? m.color : C.inkDim, fontWeight: active ? 700 : 400}}>{m.label}</span>
+                  <span style={{fontSize:24}}>{m.emoji}</span>
+                  <span style={{fontSize:11, color:active ? m.color : C.inkDim, fontWeight: active ? 700 : 400}}>{m.label}</span>
                 </button>
               );
             })}
@@ -1245,24 +1282,24 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
         </div>
 
         {/* Study axes */}
-        <div style={{marginBottom:18}}>
+        <div style={{marginBottom:20}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
             <div className="section-tag" style={{color:C.inkDim}}>학습 영역</div>
-            <div style={{display:'flex', alignItems:'center', gap:10}}>
+            <div style={{display:'flex', alignItems:'center', gap:4}}>
               {!isAllPaused(data.axes) && data.axes.length > 0 && (
                 <button onClick={() => {
                   if (!confirm('자기계발(학습 영역) 전체를 보류할까요?\n보류 중에는 오늘 화면에서 숨겨지고, 활동 스트릭도 끊기지 않아요.')) return;
                   saveData(withAxesPaused(data, data.axes.map(a => a.id), true));
                 }} style={{
                   background:'transparent', border:'none', color:C.inkDim,
-                  fontSize:10.5, cursor:'pointer', fontWeight:600, padding:0,
+                  minHeight:36, padding:'0 4px', fontSize:11, cursor:'pointer', fontWeight:600,
                 }}>전체 보류</button>
               )}
               <button onClick={() => setActiveTab('manage')} style={{
                 background:'transparent', border:'none', color:C.teal,
-                fontSize:10.5, cursor:'pointer', fontWeight:600,
-                display:'flex', alignItems:'center', gap:3, padding:0,
-              }}>편집 <Ic d={i.chevronRight} size={10} color={C.teal} /></button>
+                minHeight:36, padding:'0 4px', fontSize:11, cursor:'pointer', fontWeight:600,
+                display:'flex', alignItems:'center', gap:4,
+              }}>편집 <Ic d={i.chevronRight} size={12} color={C.teal} /></button>
             </div>
           </div>
           {isAllPaused(data.axes) ? (() => {
@@ -1270,51 +1307,50 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
             const dayN = cp ? Math.floor((parseLocalDate(localDateStr()) - parseLocalDate(cp.start)) / 86400000) + 1 : null;
             return (
               <div style={{
-                display:'flex', alignItems:'center', justifyContent:'space-between', gap:10,
-                padding:'12px 14px', borderRadius:12,
+                display:'flex', alignItems:'center', justifyContent:'space-between', gap:12,
+                padding:'12px', borderRadius:12,
                 background:'rgba(255,255,255,0.02)', border:`1px dashed ${C.line}`,
               }}>
                 <div style={{minWidth:0}}>
-                  <div style={{fontSize:12.5, fontWeight:700, color:C.inkMid}}>자기계발 보류 중{dayN ? ` · ${dayN}일째` : ''}</div>
-                  <div style={{fontSize:11, color:C.inkDim, marginTop:2, lineHeight:1.4}}>지금은 다른 데 집중하는 시기. 활동 스트릭은 멈춰 있어요.</div>
+                  <div style={{fontSize:13, fontWeight:700, color:C.inkMid}}>자기계발 보류 중{dayN ? ` · ${dayN}일째` : ''}</div>
+                  <div style={{fontSize:12, color:C.inkDim, marginTop:4, lineHeight:1.4}}>지금은 다른 데 집중하는 시기. 활동 스트릭은 멈춰 있어요.</div>
                 </div>
                 <button onClick={() => saveData(withAxesPaused(data, data.axes.map(a => a.id), false))} className="btn-press" style={{
-                  flexShrink:0, padding:'7px 12px', borderRadius:8, cursor:'pointer',
-                  background:'transparent', border:`1px solid ${C.teal}`, color:C.teal, fontSize:11.5, fontWeight:700,
+                  flexShrink:0, minHeight:36, padding:'4px 12px', borderRadius:8, cursor:'pointer',
+                  background:'transparent', border:`1px solid ${C.teal}`, color:C.teal, fontSize:12, fontWeight:700,
                 }}>재개</button>
               </div>
             );
           })() : (
           <>
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:7}}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:8}}>
             {activeAxes(data.axes).map(ax => {
               const active = todayData.axes.includes(ax.id);
               return (
                 <button key={ax.id} onClick={() => toggleAxis(ax.id)} className="btn-press" style={{
                   background: active ? `${ax.color}14` : 'rgba(255,255,255,0.02)',
                   border:`1px solid ${active ? ax.color+'50' : C.line}`,
-                  borderRadius:12, padding:'11px 13px', textAlign:'left', cursor:'pointer',
-                  boxShadow: active ? `0 0 20px ${ax.color}15` : 'none',
+                  borderRadius:12, padding:'12px 12px', textAlign:'left', cursor:'pointer',
                   transition:'all 0.2s',
                 }}>
-                  <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:3}}>
+                  <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:4}}>
                     <div style={{
-                      width:26, height:26, borderRadius:7,
+                      width:26, height:26, borderRadius:8,
                       background: active ? `${ax.color}20` : 'rgba(255,255,255,0.04)',
                       display:'flex', alignItems:'center', justifyContent:'center',
                     }}>
-                      <Ic d={i[ax.icon]} size={12} color={active ? ax.color : C.inkDim} />
+                      <Ic d={i[ax.icon]} size={14} color={active ? ax.color : C.inkDim} />
                     </div>
-                    <span style={{fontSize:11.5, fontWeight:700, color:active ? ax.color : C.inkDim, letterSpacing:'0.06em'}}>{ax.label}</span>
+                    <span style={{fontSize:12, fontWeight:700, color:active ? ax.color : C.inkDim, letterSpacing:'0.02em'}}>{ax.label}</span>
                     {active && <span style={{marginLeft:'auto', color:ax.color, fontSize:14}}>✓</span>}
                   </div>
-                  <div style={{fontSize:11, color:active ? C.inkMid : C.inkDim, lineHeight:1.3, paddingLeft:33}}>{ax.sub}</div>
+                  <div style={{fontSize:12, color:active ? C.inkMid : C.inkDim, lineHeight:1.3, paddingLeft:34, overflowWrap:'anywhere'}}>{ax.sub}</div>
                 </button>
               );
             })}
           </div>
           {data.axes.some(a => a.paused) && (
-            <div style={{fontSize:11, color:C.inkDim, marginTop:8}}>
+            <div style={{fontSize:12, color:C.inkDim, marginTop:8}}>
               보류 중: {data.axes.filter(a => a.paused).map(a => a.label).join(', ')}
             </div>
           )}
@@ -1323,25 +1359,25 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
         </div>
 
         {/* Exercise — multi-select */}
-        <div style={{marginBottom:18}}>
+        <div style={{marginBottom:20}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
-            <div style={{display:'flex', alignItems:'center', gap:7}}>
+            <div style={{display:'flex', alignItems:'center', gap:8}}>
               <div className="section-tag" style={{color:C.inkDim}}>운동 종류</div>
               {todayExercises.length > 0 && (
                 <span style={{
-                  fontSize:9.5, fontWeight:700, color:C.teal,
+                  fontSize:11, fontWeight:700, color:C.teal,
                   background:`${C.teal}18`, border:`1px solid ${C.teal}40`,
-                  padding:'1px 7px', borderRadius:20,
+                  padding:'2px 8px', borderRadius:999,
                 }}>{todayExercises.length}개 선택</span>
               )}
             </div>
             <button onClick={() => setActiveTab('manage')} style={{
               background:'transparent', border:'none', color:C.teal,
-              fontSize:10.5, cursor:'pointer', fontWeight:600,
-              display:'flex', alignItems:'center', gap:3,
-            }}>편집 <Ic d={i.chevronRight} size={10} color={C.teal} /></button>
+              minHeight:36, padding:'0 4px', fontSize:11, cursor:'pointer', fontWeight:600,
+              display:'flex', alignItems:'center', gap:4,
+            }}>편집 <Ic d={i.chevronRight} size={12} color={C.teal} /></button>
           </div>
-          <div style={{display:'grid', gridTemplateColumns:`repeat(${cols}, 1fr)`, gap:6}}>
+          <div style={{display:'grid', gridTemplateColumns:`repeat(${cols}, 1fr)`, gap:8}}>
             {exerciseTypes.map(et => {
               const active = todayExercises.includes(et.id);
               const isPt = et.id === 'pt';
@@ -1351,10 +1387,9 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
                   className={ptMaxed ? '' : 'btn-press'} style={{
                     background: active ? `${et.color}18` : 'rgba(255,255,255,0.02)',
                     border:`1px solid ${active ? et.color+'60' : C.line}`,
-                    borderRadius:12, padding:'10px 8px', cursor:ptMaxed ? 'not-allowed' : 'pointer',
-                    display:'flex', flexDirection:'column', alignItems:'center', gap:5,
+                    borderRadius:12, padding:'12px 8px', cursor:ptMaxed ? 'not-allowed' : 'pointer',
+                    display:'flex', flexDirection:'column', alignItems:'center', gap:4,
                     opacity:ptMaxed ? 0.4 : 1,
-                    boxShadow: active ? `0 0 20px ${et.color}20` : 'none',
                     transition:'all 0.2s', position:'relative',
                   }}>
                   {active && (
@@ -1363,11 +1398,11 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
                       width:14, height:14, borderRadius:'50%',
                       background:et.color, display:'flex', alignItems:'center', justifyContent:'center',
                     }}>
-                      <Ic d={i.check} size={8} color='#080b14' strokeWidth={3} />
+                      <Ic d={i.check} size={8} color={C.onAccent} strokeWidth={3} />
                     </div>
                   )}
                   <Ic d={i[et.icon]} size={16} color={active ? et.color : C.inkDim} />
-                  <span style={{fontSize:11.5, color:active ? et.color : C.inkDim, fontWeight:active ? 700 : 400}}>
+                  <span style={{fontSize:12, color:active ? et.color : C.inkDim, fontWeight:active ? 700 : 400}}>
                     {et.label}{isPt && ` (${ptRemaining})`}
                   </span>
                 </button>
@@ -1375,19 +1410,19 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
             })}
           </div>
           {todayExercises.length > 1 && (
-            <div style={{marginTop:7, display:'flex', gap:5, flexWrap:'wrap'}}>
+            <div style={{marginTop:8, display:'flex', gap:4, flexWrap:'wrap'}}>
               {todayExercises.map(id => {
                 const et = exerciseTypes.find(e => e.id === id);
                 if (!et) return null;
                 return (
                   <span key={id} style={{
-                    fontSize:10, padding:'2px 9px', borderRadius:20,
+                    fontSize:11, padding:'2px 8px', borderRadius:999,
                     background:`${et.color}18`, border:`1px solid ${et.color}40`,
                     color:et.color, fontWeight:600,
                   }}>{et.label}</span>
                 );
               })}
-              <span style={{fontSize:10.5, color:C.inkDim, alignSelf:'center'}}>복합 운동 ✓</span>
+              <span style={{fontSize:11, color:C.inkDim, alignSelf:'center'}}>복합 운동 ✓</span>
             </div>
           )}
         </div>
@@ -1397,46 +1432,45 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
           width:'100%', borderRadius:12,
           background: todayData.cafe ? `${C.rust}14` : 'rgba(255,255,255,0.02)',
           border:`1px solid ${todayData.cafe ? C.rust+'50' : C.line}`,
-          padding:'10px 14px', cursor:'pointer',
-          display:'flex', alignItems:'center', gap:8, justifyContent:'center', marginBottom:14,
-          boxShadow: todayData.cafe ? `0 0 20px ${C.rust}15` : 'none',
+          padding:'12px 16px', cursor:'pointer',
+          display:'flex', alignItems:'center', gap:8, justifyContent:'center', marginBottom:16,
           transition:'all 0.2s',
         }}>
           <Ic d={i.coffee} size={14} color={todayData.cafe ? C.rust : C.inkDim} />
-          <span style={{fontSize:12.5, color:todayData.cafe ? C.rust : C.inkDim, fontWeight:todayData.cafe ? 700 : 400}}>카페 {todayData.cafe ? '✓' : ''}</span>
+          <span style={{fontSize:13, color:todayData.cafe ? C.rust : C.inkDim, fontWeight:todayData.cafe ? 700 : 400}}>카페 {todayData.cafe ? '✓' : ''}</span>
         </button>
 
         {/* Sleep */}
         <div style={{
           display:'flex', alignItems:'center', justifyContent:'space-between',
-          marginBottom:14, padding:'10px 14px', borderRadius:10,
+          marginBottom:16, padding:'12px 16px', borderRadius:12,
           background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`,
         }}>
-          <div style={{display:'flex', alignItems:'center', gap:7}}>
-            <Ic d={i.moon} size={13} color={C.inkDim} />
-            <span style={{fontSize:12, color:C.inkDim}}>어젯밤 수면</span>
+          <div style={{display:'flex', alignItems:'center', gap:8}}>
+            <Ic d={i.moon} size={14} color={C.inkDim} />
+            <span style={{fontSize:13, color:C.inkDim}}>어젯밤 수면</span>
           </div>
-          <div style={{display:'flex', alignItems:'center', gap:10}}>
+          <div style={{display:'flex', alignItems:'center', gap:12}}>
             <button onClick={() => updateToday({sleepHrs: Math.max(4, (todayData.sleepHrs ?? 8) - 0.5)})}
               style={{
                 background:'rgba(255,255,255,0.05)', border:`1px solid ${C.line}`,
-                color:C.inkMid, width:28, height:28, borderRadius:8, cursor:'pointer',
+                color:C.inkMid, width:40, height:40, borderRadius:8, cursor:'pointer',
                 display:'flex', alignItems:'center', justifyContent:'center',
               }}>
-              <Ic d={i.minus} size={11} />
+              <Ic d={i.minus} size={12} />
             </button>
             <span style={{
-              fontSize:16, fontWeight:800, minWidth:44, textAlign:'center',
+              fontSize:16, fontWeight:700, minWidth:44, textAlign:'center',
               color: (todayData.sleepHrs ?? 8) >= 7.5 ? C.sage : C.gold,
               fontVariantNumeric:'tabular-nums',
             }}>{todayData.sleepHrs ?? 8}h</span>
             <button onClick={() => updateToday({sleepHrs: Math.min(12, (todayData.sleepHrs ?? 8) + 0.5)})}
               style={{
                 background:'rgba(255,255,255,0.05)', border:`1px solid ${C.line}`,
-                color:C.inkMid, width:28, height:28, borderRadius:8, cursor:'pointer',
+                color:C.inkMid, width:40, height:40, borderRadius:8, cursor:'pointer',
                 display:'flex', alignItems:'center', justifyContent:'center',
               }}>
-              <Ic d={i.plus} size={11} />
+              <Ic d={i.plus} size={12} />
             </button>
           </div>
         </div>
@@ -1454,53 +1488,50 @@ function TodayTab({ data, today, todayData, dToStart, ptCompleted, ptRemaining, 
 
       {/* PT tracker */}
       <div style={{
-        background:C.bg2, borderRadius:16, padding:'18px 20px', marginBottom:14,
+        background:C.bg2, borderRadius:16, padding:'20px 20px', marginBottom:16,
         border:`1px solid ${ptDone ? C.sage+'50' : C.gold+'40'}`,
-        boxShadow: ptDone ? `0 0 30px ${C.sage}10` : `0 0 30px ${C.gold}08`,
       }}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
-          <div style={{display:'flex', alignItems:'center', gap:7}}>
+          <div style={{display:'flex', alignItems:'center', gap:8}}>
             <Ic d={i.dumbbell} size={14} color={ptDone ? C.sage : C.gold} />
             <span className="section-tag" style={{color:ptDone ? C.sage : C.gold}}>PT 30회 챌린지</span>
           </div>
           <div style={{
-            fontSize:22, fontWeight:800, color:ptDone ? C.sage : C.gold,
+            fontSize:24, fontWeight:700, color:ptDone ? C.sage : C.gold,
             fontVariantNumeric:'tabular-nums',
           }}>
-            {ptCompleted}<span style={{fontSize:12, color:C.inkDim, fontWeight:400}}>/{PT_CONFIG.total}</span>
+            {ptCompleted}<span style={{fontSize:13, color:C.inkDim, fontWeight:400}}>/{PT_CONFIG.total}</span>
           </div>
         </div>
         <div className="progress-track">
           <div className="progress-fill" style={{
             width:`${Math.min((ptCompleted/PT_CONFIG.total)*100, 100)}%`,
-            background: ptDone
-              ? `linear-gradient(90deg, ${C.sage}, #6ee7b7)`
-              : `linear-gradient(90deg, ${C.gold}, #fcd34d)`,
+            background: ptDone ? C.sage : C.gold,
           }} />
         </div>
         {ptDone && (
-          <div style={{marginTop:10, fontSize:12, color:C.sage, fontWeight:700, textAlign:'center'}}>🎉 30회 완료!</div>
+          <div style={{marginTop:12, fontSize:13, color:C.sage, fontWeight:700, textAlign:'center'}}>🎉 30회 완료!</div>
         )}
         {!ptDone && (
-          <div style={{marginTop:8, fontSize:11, color:C.inkDim, textAlign:'right'}}>
+          <div style={{marginTop:8, fontSize:12, color:C.inkDim, textAlign:'right'}}>
             남은 횟수 <span style={{color:C.gold, fontWeight:700}}>{ptRemaining}</span>회 · 예상 완료 {PT_CONFIG.estimatedEnd}
           </div>
         )}
       </div>
 
       {/* Leader's Codex — dynamic based on yesterday */}
-      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'18px 20px', marginBottom:14}}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}}>
-          <div style={{display:'flex', alignItems:'center', gap:7}}>
+      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'20px 20px', marginBottom:16}}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
+          <div style={{display:'flex', alignItems:'center', gap:8}}>
             <Ic d={i.crown} size={14} color={C.gold} />
             <span className="section-tag" style={{color:C.gold}}>Leader's Codex</span>
           </div>
           <span style={{
-            fontSize:9.5, color:C.inkDim, fontStyle:'italic',
-            background:'rgba(255,255,255,0.03)', padding:'2px 8px', borderRadius:6,
+            fontSize:11, color:C.inkDim,
+            background:'rgba(255,255,255,0.03)', padding:'2px 8px', borderRadius:8,
           }}>어제 기반 · 오늘 경각심</span>
         </div>
-        <p style={{fontSize:11, color:C.inkDim, marginBottom:14, lineHeight:1.5}}>
+        <p style={{fontSize:12, color:C.inkDim, marginBottom:16, lineHeight:1.5}}>
           어제의 기록이 오늘의 코덱스를 만듭니다. 탭해서 펼치세요.
         </p>
         {codex.map(entry => <CodexCard key={entry.id} entry={entry} openId={codexOpen} setOpenId={setCodexOpen} />)}
@@ -1522,9 +1553,9 @@ function AnalysisTab({ data, range, setRange, saveData, streaks }) {
 
   const StatCard = ({ label, value, unit, color }) => (
     <div className="stat-pill" style={{borderColor: value ? `${color}30` : C.line, background: value ? `${color}08` : 'rgba(255,255,255,0.02)'}}>
-      <div className="section-tag" style={{color:C.inkDim, marginBottom:6}}>{label}</div>
-      <div style={{fontSize:20, fontWeight:800, color: value ? color : C.inkDim, fontVariantNumeric:'tabular-nums', lineHeight:1}}>
-        {value ?? '—'}{value && <span style={{fontSize:10, color:C.inkDim, fontWeight:400, marginLeft:2}}>{unit}</span>}
+      <div className="section-tag" style={{color:C.inkDim, marginBottom:8}}>{label}</div>
+      <div style={{fontSize:24, fontWeight:700, color: value ? color : C.inkDim, fontVariantNumeric:'tabular-nums', lineHeight:1}}>
+        {value ?? '—'}{value > 0 && <span style={{fontSize:11, color:C.inkDim, fontWeight:400, marginLeft:2}}>{unit}</span>}
       </div>
     </div>
   );
@@ -1532,36 +1563,36 @@ function AnalysisTab({ data, range, setRange, saveData, streaks }) {
   return (
     <div>
       {/* Range selector */}
-      <div style={{display:'flex', gap:6, marginBottom:16}}>
+      <div style={{display:'flex', gap:8, marginBottom:16}}>
         {[['week','7일'], ['month','30일'], ['all','전체']].map(([key, label]) => (
           <button key={key} onClick={() => setRange(key)} className="btn-press" style={{
-            flex:1, padding:'8px', borderRadius:10, border:'none', cursor:'pointer',
+            flex:1, padding:'8px', borderRadius:12, border:'none', cursor:'pointer',
             background: range===key ? `${C.sage}14` : 'rgba(255,255,255,0.03)',
             color: range===key ? C.sage : C.inkDim,
-            fontSize:11.5, fontWeight:600,
+            fontSize:12, fontWeight:600,
             border:`1px solid ${range===key ? C.sage+'40' : C.line}`,
           }}>{label}</button>
         ))}
       </div>
 
       {/* Stats grid */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8, marginBottom:14}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8, marginBottom:16}}>
         <StatCard label="활동일" value={stats.activeDays} unit="일" color={C.sage} />
         <StatCard label="운동일" value={stats.exerciseDays} unit="일" color={C.teal} />
         <StatCard label="수면" value={stats.sleepAvg?.toFixed(1)} unit="h" color={C.gold} />
       </div>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8, marginBottom:14}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8, marginBottom:16}}>
         <StatCard label="일기" value={stats.journalDays} unit="일" color={C.plum} />
         <StatCard label="Axis" value={stats.axisCount} unit="회" color={C.rust} />
         <StatCard label="최장 스트릭" value={streaks.longest} unit="일" color={C.gold} />
       </div>
 
       {/* Heatmap */}
-      <MonthlyHeatmap days={data.days} axes={data.axes} />
+      <MonthlyHeatmap days={data.days} axes={data.axes} exerciseTypes={data.exerciseTypes} />
 
       {/* Insights */}
-      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'18px 20px', marginBottom:14}}>
-        <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:14}}>
+      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'20px 20px', marginBottom:16}}>
+        <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:16}}>
           <Ic d={i.sparkles} size={14} color={C.sage} />
           <span className="section-tag" style={{color:C.sage}}>인사이트</span>
         </div>
@@ -1569,43 +1600,45 @@ function AnalysisTab({ data, range, setRange, saveData, streaks }) {
           const col = insightColors[ins.type];
           return (
             <div key={idx} style={{
-              display:'flex', gap:10, alignItems:'flex-start',
-              padding:'10px 12px', borderRadius:10, marginBottom:6,
+              display:'flex', gap:12, alignItems:'flex-start',
+              padding:'12px 12px', borderRadius:12, marginBottom:8,
               background:`${col}0a`, border:`1px solid ${col}25`,
             }}>
               <div style={{
-                width:24, height:24, borderRadius:7, flexShrink:0,
+                width:24, height:24, borderRadius:8, flexShrink:0,
                 background:`${col}18`, display:'flex', alignItems:'center', justifyContent:'center',
               }}>
-                <Ic d={i[insightIcons[ins.type]]} size={11} color={col} />
+                <Ic d={i[insightIcons[ins.type]]} size={12} color={col} />
               </div>
-              <span style={{fontSize:12, color:C.inkMid, lineHeight:1.55, paddingTop:3}}>{ins.text}</span>
+              <span style={{fontSize:13, color:C.inkMid, lineHeight:1.55, paddingTop:4}}>{ins.text}</span>
             </div>
           );
         })}
       </div>
 
       {/* Growth suggestions */}
-      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'18px 20px', marginBottom:14}}>
-        <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:14}}>
+      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'20px 20px', marginBottom:16}}>
+        <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:16}}>
           <Ic d={i.target} size={14} color={C.teal} />
           <span className="section-tag" style={{color:C.teal}}>성장 제안</span>
         </div>
         {suggestions.map((s, idx) => (
           <div key={idx} style={{
-            padding:'12px 14px', borderRadius:10, marginBottom:6,
+            padding:'12px 16px', borderRadius:12, marginBottom:8,
             background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`,
-            borderLeft:`3px solid ${[C.rust,C.gold,C.sage][s.priority-1]||C.sage}`,
           }}>
-            <div style={{fontSize:12.5, fontWeight:700, color:C.ink, marginBottom:4}}>{s.title}</div>
-            <div style={{fontSize:11.5, color:C.inkDim, lineHeight:1.55}}>{s.body}</div>
+            <div style={{display:'flex', alignItems:'center', gap:8, fontSize:13, fontWeight:700, color:C.ink, marginBottom:4}}>
+              <span style={{width:8, height:8, borderRadius:'50%', flexShrink:0, background:[C.rust,C.gold,C.sage][s.priority-1]||C.sage}} />
+              {s.title}
+            </div>
+            <div style={{fontSize:12, color:C.inkDim, lineHeight:1.55}}>{s.body}</div>
           </div>
         ))}
       </div>
 
       {/* Philosopher analysis */}
-      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'18px 20px', marginBottom:14}}>
-        <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:14}}>
+      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'20px 20px', marginBottom:16}}>
+        <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:16}}>
           <Ic d={i.brain} size={14} color={C.plum} />
           <span className="section-tag" style={{color:C.plum}}>철학적 분석</span>
         </div>
@@ -1614,27 +1647,26 @@ function AnalysisTab({ data, range, setRange, saveData, streaks }) {
           return (
             <div key={philosopher.id} style={{
               background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`,
-              borderRadius:12, marginBottom:6, overflow:'hidden',
+              borderRadius:12, marginBottom:8, overflow:'hidden',
             }}>
               <button style={{
-                width:'100%', padding:'12px 14px', background:'transparent', border:'none',
+                width:'100%', padding:'12px 16px', background:'transparent', border:'none',
                 cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center',
-                textAlign:'left', borderLeft:`3px solid ${philosopher.color}`,
-              }} onClick={() => setOpenPhil(isOpen ? null : philosopher.id)}>
+                textAlign:'left',              }} onClick={() => setOpenPhil(isOpen ? null : philosopher.id)}>
                 <div>
-                  <div style={{fontSize:13, fontWeight:700, color:C.ink, marginBottom:2}}>{philosopher.name}</div>
-                  <div style={{fontSize:10.5, color:philosopher.color, fontStyle:'italic'}}>{philosopher.subtitle}</div>
+                  <div style={{fontSize:14, fontWeight:700, color:C.ink, marginBottom:2}}>{philosopher.name}</div>
+                  <div style={{fontSize:11, color:philosopher.color}}>{philosopher.subtitle}</div>
                 </div>
                 <div style={{transform:isOpen?'rotate(90deg)':'rotate(0deg)', transition:'transform 0.2s'}}>
-                  <Ic d={i.chevronRight} size={13} color={C.inkDim} />
+                  <Ic d={i.chevronRight} size={14} color={C.inkDim} />
                 </div>
               </button>
               {isOpen && (
-                <div style={{padding:'4px 14px 14px 14px', borderTop:`1px solid ${C.line}`}}>
-                  <p style={{fontSize:11.5, color:C.inkDim, fontStyle:'italic', marginTop:8, marginBottom:10, lineHeight:1.6}}>
+                <div style={{padding:'4px 16px 16px 16px', borderTop:`1px solid ${C.line}`}}>
+                  <p style={{fontSize:12, color:C.inkDim, marginTop:8, marginBottom:12, lineHeight:1.6}}>
                     {philosopher.motto}
                   </p>
-                  <p style={{fontSize:12, color:C.inkMid, lineHeight:1.65}}>{text}</p>
+                  <p style={{fontSize:13, color:C.inkMid, lineHeight:1.65}}>{text}</p>
                 </div>
               )}
             </div>
@@ -1661,6 +1693,7 @@ function ManageTab({ data, saveData }) {
   const [lastBackup, setLastBackup] = useState(() => safeGet(LAST_BACKUP_KEY));
   const [snapshots, setSnapshots] = useState(() => loadSnapshots());
   const [showSnapshots, setShowSnapshots] = useState(false);
+  const [recoveryKeys] = useState(() => listRecoveryKeys());
   const [showGuide, setShowGuide] = useState(false);
   const [taskForm, setTaskForm] = useState(() => ({ date: localDateStr(), text: '' }));
   const [editTask, setEditTask] = useState(null);
@@ -1696,6 +1729,10 @@ function ManageTab({ data, saveData }) {
   };
   // 덮어쓰기 전 현재 데이터를 스냅샷으로 남겨서 언제든 되돌릴 수 있게 함
   const restoreFrom = (d, sourceLabel) => {
+    if (storageLocked) {
+      alert('지금은 저장이 멈춰 있어 복원할 수 없어요. 화면 위 안내에 따라 원본을 먼저 내려받아 주세요.');
+      return false;
+    }
     const cur = summarizeData(data), inc = summarizeData(d);
     const msg = `${sourceLabel}\n\n현재: ${cur.count}일 기록 (${cur.first} ~ ${cur.last})\n` +
       `가져올 데이터: ${inc.count}일 기록 (${inc.first} ~ ${inc.last})\n\n` +
@@ -1703,7 +1740,10 @@ function ManageTab({ data, saveData }) {
     if (!confirm(msg)) return false;
     pushSnapshot(data, '복원 전 자동 보관');
     setSnapshots(loadSnapshots());
-    saveData({ ...initialData(), ...d });
+    if (!saveData({ ...initialData(), ...d })) {
+      alert('저장하지 못했어요. 화면 위 안내에 따라 원본을 먼저 내려받은 뒤 다시 시도해 주세요.');
+      return false;
+    }
     return true;
   };
   const importData = () => {
@@ -1779,18 +1819,17 @@ function ManageTab({ data, saveData }) {
   };
 
   const SectionToggle = ({ label, icon, color, open, onToggle, children }) => (
-    <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:14, marginBottom:10, overflow:'hidden'}}>
+    <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, marginBottom:12, overflow:'hidden'}}>
       <button onClick={onToggle} style={{
-        width:'100%', padding:'14px 16px', background:'transparent', border:'none',
+        width:'100%', padding:'16px 16px', background:'transparent', border:'none',
         cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center',
-        borderLeft:`3px solid ${color}`,
       }}>
         <div style={{display:'flex', alignItems:'center', gap:8}}>
           <Ic d={i[icon]} size={14} color={color} />
-          <span style={{fontSize:13, fontWeight:700, color:C.ink}}>{label}</span>
+          <span style={{fontSize:14, fontWeight:700, color:C.ink}}>{label}</span>
         </div>
         <div style={{transform:open?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.2s'}}>
-          <Ic d={i.chevronDown} size={13} color={C.inkDim} />
+          <Ic d={i.chevronDown} size={14} color={C.inkDim} />
         </div>
       </button>
       {open && <div style={{padding:'4px 16px 16px', borderTop:`1px solid ${C.line}`}}>{children}</div>}
@@ -1804,54 +1843,53 @@ function ManageTab({ data, saveData }) {
         {(data.exerciseTypes || DEFAULT_EXERCISE_TYPES).map(et => (
           <div key={et.id} style={{
             display:'flex', justifyContent:'space-between', alignItems:'center',
-            padding:'10px 12px', borderRadius:10, marginTop:8,
+            padding:'12px 12px', borderRadius:12, marginTop:8,
             background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`,
-            borderLeft:`3px solid ${et.color}`,
           }}>
             <div style={{display:'flex', alignItems:'center', gap:8}}>
-              <Ic d={i[et.icon]} size={13} color={et.color} />
-              <span style={{fontSize:12.5, fontWeight:700, color:C.ink}}>{et.label}</span>
+              <Ic d={i[et.icon]} size={14} color={et.color} />
+              <span style={{fontSize:13, fontWeight:700, color:C.ink}}>{et.label}</span>
             </div>
-            <div style={{display:'flex', gap:5}}>
+            <div style={{display:'flex', gap:4}}>
               <button onClick={() => { setEditExType(et.id); setExTypeForm({label:et.label,icon:et.icon,color:et.color}); setNewExType(true); }}
-                style={{background:'rgba(255,255,255,0.05)', border:`1px solid ${C.line}`, color:C.inkMid, padding:'5px 8px', borderRadius:7, cursor:'pointer', display:'flex', alignItems:'center'}}>
-                <Ic d={i.edit} size={12} />
+                style={{background:'rgba(255,255,255,0.05)', border:`1px solid ${C.line}`, color:C.inkMid, width:36, height:36, borderRadius:8, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <Ic d={i.edit} size={14} />
               </button>
               <button onClick={() => {
                 if (!confirm('이 운동 종류를 삭제할까요?')) return;
                 saveData({ ...data, exerciseTypes: (data.exerciseTypes||DEFAULT_EXERCISE_TYPES).filter(e => e.id !== et.id) });
-              }} style={{background:`${C.rust}12`, border:`1px solid ${C.rust}30`, color:C.rust, padding:'5px 8px', borderRadius:7, cursor:'pointer', display:'flex', alignItems:'center'}}>
-                <Ic d={i.trash} size={12} />
+              }} style={{background:`${C.rust}12`, border:`1px solid ${C.rust}30`, color:C.rust, width:36, height:36, borderRadius:8, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <Ic d={i.trash} size={14} />
               </button>
             </div>
           </div>
         ))}
         {newExType && (
-          <div style={{marginTop:12, padding:'14px', background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`, borderRadius:10}}>
-            <div className="section-tag" style={{color:C.teal, marginBottom:10}}>{editExType ? '운동 종류 수정' : '새 운동 종류 추가'}</div>
-            <input value={exTypeForm.label} onChange={e => setExTypeForm({...exTypeForm, label:e.target.value})} placeholder="이름 (ex: 수영)" className="field" style={{marginBottom:10}} />
-            <div style={{display:'flex', gap:5, flexWrap:'wrap', marginBottom:10}}>
+          <div style={{marginTop:12, padding:'16px', background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`, borderRadius:12}}>
+            <div className="section-tag" style={{color:C.teal, marginBottom:12}}>{editExType ? '운동 종류 수정' : '새 운동 종류 추가'}</div>
+            <input value={exTypeForm.label} onChange={e => setExTypeForm({...exTypeForm, label:e.target.value})} placeholder="이름 (ex: 수영)" className="field" style={{marginBottom:12}} />
+            <div style={{display:'flex', gap:4, flexWrap:'wrap', marginBottom:12}}>
               {COLOR_OPTIONS.map(c => (
                 <button key={c} onClick={() => setExTypeForm({...exTypeForm, color:c})} style={{
-                  width:26, height:26, borderRadius:7, background:c,
-                  border:`2px solid ${exTypeForm.color === c ? '#fff' : 'transparent'}`,
+                  width:36, height:36, borderRadius:8, background:c,
+                  border:`2px solid ${exTypeForm.color === c ? C.ink : 'transparent'}`,
                   cursor:'pointer',
                 }} />
               ))}
             </div>
-            <div style={{display:'flex', gap:5, flexWrap:'wrap', marginBottom:12}}>
+            <div style={{display:'flex', gap:4, flexWrap:'wrap', marginBottom:12}}>
               {ICON_OPTIONS.map(ic => (
                 <button key={ic} onClick={() => setExTypeForm({...exTypeForm, icon:ic})} style={{
-                  width:30, height:30, borderRadius:7,
+                  width:36, height:36, borderRadius:8,
                   background: exTypeForm.icon === ic ? `${exTypeForm.color}20` : 'rgba(255,255,255,0.03)',
                   border:`1px solid ${exTypeForm.icon === ic ? exTypeForm.color : C.line}`,
                   cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
                 }}>
-                  <Ic d={i[ic]} size={13} color={exTypeForm.icon === ic ? exTypeForm.color : C.inkDim} />
+                  <Ic d={i[ic]} size={14} color={exTypeForm.icon === ic ? exTypeForm.color : C.inkDim} />
                 </button>
               ))}
             </div>
-            <div style={{display:'flex', gap:6}}>
+            <div style={{display:'flex', gap:8}}>
               <button onClick={() => {
                 if (!exTypeForm.label.trim()) return;
                 const types = data.exerciseTypes || DEFAULT_EXERCISE_TYPES;
@@ -1864,14 +1902,14 @@ function ManageTab({ data, saveData }) {
                 setNewExType(false);
                 setExTypeForm({label:'', icon:'dumbbell', color:C.teal});
               }} className="btn-press" style={{
-                flex:1, padding:'9px', borderRadius:9, border:'none', cursor:'pointer',
-                background:`linear-gradient(135deg, ${C.teal}, #67e8f9)`,
-                color:'#080b14', fontSize:12.5, fontWeight:700,
+                flex:1, padding:'8px', borderRadius:12, border:'none', cursor:'pointer',
+                background:C.teal,
+                color:C.onAccent, fontSize:13, fontWeight:700,
               }}>저장</button>
               <button onClick={() => { setNewExType(false); setEditExType(null); }} className="btn-press" style={{
-                flex:1, padding:'9px', borderRadius:9, cursor:'pointer',
+                flex:1, padding:'8px', borderRadius:12, cursor:'pointer',
                 background:'rgba(255,255,255,0.04)', border:`1px solid ${C.line}`,
-                color:C.inkDim, fontSize:12.5,
+                color:C.inkDim, fontSize:13,
               }}>취소</button>
             </div>
           </div>
@@ -1879,12 +1917,12 @@ function ManageTab({ data, saveData }) {
         {!newExType && (
           <button onClick={() => { setNewExType(true); setEditExType(null); setExTypeForm({label:'',icon:'dumbbell',color:C.teal}); }}
             className="btn-press" style={{
-              width:'100%', marginTop:10, padding:'10px', borderRadius:10,
+              width:'100%', marginTop:12, padding:'12px', borderRadius:12,
               background:`${C.teal}08`, border:`1px dashed ${C.teal}40`,
-              color:C.teal, fontSize:12, fontWeight:600, cursor:'pointer',
-              display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+              color:C.teal, fontSize:13, fontWeight:600, cursor:'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             }}>
-            <Ic d={i.plus} size={13} color={C.teal} /> 운동 종류 추가
+            <Ic d={i.plus} size={14} color={C.teal} /> 운동 종류 추가
           </button>
         )}
       </SectionToggle>
@@ -1894,69 +1932,68 @@ function ManageTab({ data, saveData }) {
         {data.axes.map(ax => (
           <div key={ax.id} style={{
             display:'flex', justifyContent:'space-between', alignItems:'center',
-            padding:'10px 12px', borderRadius:10, marginTop:8,
+            padding:'12px 12px', borderRadius:12, marginTop:8,
             background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`,
-            borderLeft:`3px solid ${ax.color}`,
           }}>
             <div style={{display:'flex', alignItems:'center', gap:8}}>
-              <Ic d={i[ax.icon]} size={13} color={ax.paused ? C.inkDim : ax.color} />
-              <div style={{opacity: ax.paused ? 0.55 : 1}}>
-                <div style={{fontSize:12.5, fontWeight:700, color:C.ink}}>{ax.label}{ax.paused && <span style={{fontSize:10, color:C.inkDim, fontWeight:600, marginLeft:6}}>보류 중</span>}</div>
-                <div style={{fontSize:11, color:C.inkDim}}>{ax.sub}</div>
+              <Ic d={i[ax.icon]} size={14} color={ax.paused ? C.inkDim : ax.color} />
+              <div style={{opacity: ax.paused ? 0.6 : 1}}>
+                <div style={{fontSize:13, fontWeight:700, color:C.ink}}>{ax.label}{ax.paused && <span style={{fontSize:11, color:C.inkDim, fontWeight:600, marginLeft:8}}>보류 중</span>}</div>
+                <div style={{fontSize:12, color:C.inkDim}}>{ax.sub}</div>
               </div>
             </div>
-            <div style={{display:'flex', gap:5}}>
+            <div style={{display:'flex', gap:4}}>
               <button onClick={() => saveData(withAxesPaused(data, [ax.id], !ax.paused))}
-                style={{background:'transparent', border:`1px solid ${ax.paused ? C.teal : C.line}`, color: ax.paused ? C.teal : C.inkMid, padding:'5px 9px', borderRadius:7, cursor:'pointer', fontSize:11, fontWeight:600}}>
+                style={{background:'transparent', border:`1px solid ${ax.paused ? C.teal : C.line}`, color: ax.paused ? C.teal : C.inkMid, height:36, padding:'0 12px', borderRadius:8, cursor:'pointer', fontSize:12, fontWeight:600}}>
                 {ax.paused ? '재개' : '보류'}
               </button>
               <button onClick={() => { setEditAxis(ax.id); setAxisForm({label:ax.label,sub:ax.sub,color:ax.color,icon:ax.icon}); setNewAxis(true); }}
-                style={{background:'rgba(255,255,255,0.05)', border:`1px solid ${C.line}`, color:C.inkMid, padding:'5px 8px', borderRadius:7, cursor:'pointer', display:'flex', alignItems:'center'}}>
-                <Ic d={i.edit} size={12} />
+                style={{background:'rgba(255,255,255,0.05)', border:`1px solid ${C.line}`, color:C.inkMid, width:36, height:36, borderRadius:8, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <Ic d={i.edit} size={14} />
               </button>
               <button onClick={() => deleteAxis(ax.id)}
-                style={{background:`${C.rust}12`, border:`1px solid ${C.rust}30`, color:C.rust, padding:'5px 8px', borderRadius:7, cursor:'pointer', display:'flex', alignItems:'center'}}>
-                <Ic d={i.trash} size={12} />
+                style={{background:`${C.rust}12`, border:`1px solid ${C.rust}30`, color:C.rust, width:36, height:36, borderRadius:8, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <Ic d={i.trash} size={14} />
               </button>
             </div>
           </div>
         ))}
         {newAxis && (
-          <div style={{marginTop:12, padding:'14px', background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`, borderRadius:10}}>
-            <div className="section-tag" style={{color:C.sage, marginBottom:10}}>{editAxis ? 'Axis 수정' : '새 Axis 추가'}</div>
+          <div style={{marginTop:12, padding:'16px', background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`, borderRadius:12}}>
+            <div className="section-tag" style={{color:C.sage, marginBottom:12}}>{editAxis ? 'Axis 수정' : '새 Axis 추가'}</div>
             <input value={axisForm.label} onChange={e => setAxisForm({...axisForm, label:e.target.value})} placeholder="이름 (ex: Axis III)" className="field" style={{marginBottom:8}} />
-            <input value={axisForm.sub} onChange={e => setAxisForm({...axisForm, sub:e.target.value})} placeholder="설명 (ex: 언어 학습)" className="field" style={{marginBottom:10}} />
-            <div style={{display:'flex', gap:5, flexWrap:'wrap', marginBottom:10}}>
+            <input value={axisForm.sub} onChange={e => setAxisForm({...axisForm, sub:e.target.value})} placeholder="설명 (ex: 언어 학습)" className="field" style={{marginBottom:12}} />
+            <div style={{display:'flex', gap:4, flexWrap:'wrap', marginBottom:12}}>
               {COLOR_OPTIONS.map(c => (
                 <button key={c} onClick={() => setAxisForm({...axisForm, color:c})} style={{
-                  width:26, height:26, borderRadius:7, background:c,
-                  border:`2px solid ${axisForm.color === c ? '#fff' : 'transparent'}`,
+                  width:36, height:36, borderRadius:8, background:c,
+                  border:`2px solid ${axisForm.color === c ? C.ink : 'transparent'}`,
                   cursor:'pointer',
                 }} />
               ))}
             </div>
-            <div style={{display:'flex', gap:5, flexWrap:'wrap', marginBottom:12}}>
+            <div style={{display:'flex', gap:4, flexWrap:'wrap', marginBottom:12}}>
               {ICON_OPTIONS.map(ic => (
                 <button key={ic} onClick={() => setAxisForm({...axisForm, icon:ic})} style={{
-                  width:30, height:30, borderRadius:7,
+                  width:36, height:36, borderRadius:8,
                   background: axisForm.icon === ic ? `${axisForm.color}20` : 'rgba(255,255,255,0.03)',
                   border:`1px solid ${axisForm.icon === ic ? axisForm.color : C.line}`,
                   cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
                 }}>
-                  <Ic d={i[ic]} size={13} color={axisForm.icon === ic ? axisForm.color : C.inkDim} />
+                  <Ic d={i[ic]} size={14} color={axisForm.icon === ic ? axisForm.color : C.inkDim} />
                 </button>
               ))}
             </div>
-            <div style={{display:'flex', gap:6}}>
+            <div style={{display:'flex', gap:8}}>
               <button onClick={saveAxis} className="btn-press" style={{
-                flex:1, padding:'9px', borderRadius:9, border:'none', cursor:'pointer',
-                background:`linear-gradient(135deg, ${C.sage}, #6ee7b7)`,
-                color:'#0a0c14', fontSize:12.5, fontWeight:700,
+                flex:1, padding:'8px', borderRadius:12, border:'none', cursor:'pointer',
+                background:C.sage,
+                color:C.onAccent, fontSize:13, fontWeight:700,
               }}>저장</button>
               <button onClick={() => { setNewAxis(false); setEditAxis(null); }} className="btn-press" style={{
-                flex:1, padding:'9px', borderRadius:9, cursor:'pointer',
+                flex:1, padding:'8px', borderRadius:12, cursor:'pointer',
                 background:'rgba(255,255,255,0.04)', border:`1px solid ${C.line}`,
-                color:C.inkDim, fontSize:12.5,
+                color:C.inkDim, fontSize:13,
               }}>취소</button>
             </div>
           </div>
@@ -1964,12 +2001,12 @@ function ManageTab({ data, saveData }) {
         {!newAxis && (
           <button onClick={() => { setNewAxis(true); setEditAxis(null); setAxisForm({label:'',sub:'',color:C.sage,icon:'sparkles'}); }}
             className="btn-press" style={{
-              width:'100%', marginTop:10, padding:'10px', borderRadius:10,
-              background:'rgba(52,211,153,0.06)', border:`1px dashed ${C.sage}40`,
-              color:C.sage, fontSize:12, fontWeight:600, cursor:'pointer',
-              display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+              width:'100%', marginTop:12, padding:'12px', borderRadius:12,
+              background:'rgba(127,209,168,0.06)', border:`1px dashed ${C.sage}40`,
+              color:C.sage, fontSize:13, fontWeight:600, cursor:'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             }}>
-            <Ic d={i.plus} size={13} color={C.sage} /> Axis 추가
+            <Ic d={i.plus} size={14} color={C.sage} /> Axis 추가
           </button>
         )}
       </SectionToggle>
@@ -1980,19 +2017,19 @@ function ManageTab({ data, saveData }) {
           const groups = groupGuideTasks(guideTasks);
           const past = groups.filter(g => g.isPast);
           const current = groups.filter(g => !g.isPast);
-          const iconBtn = (color) => ({
-            flexShrink:0, width:28, height:28, borderRadius:7, cursor:'pointer',
+          const iconBtn = {
+            flexShrink:0, width:36, height:36, borderRadius:8, cursor:'pointer',
             background:'transparent', border:`1px solid ${C.line}`,
             display:'flex', alignItems:'center', justifyContent:'center', padding:0,
-          });
+          };
           const renderGroup = (g) => (
             <div key={g.key} style={{marginTop:12}}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8}}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:8}}>
                 <div className="section-tag" style={{color: g.isPast ? C.inkDim : C.teal}}>{g.title}</div>
                 {g.dated && (
                   <button onClick={() => copyWeekForward(g)} className="btn-press" style={{
-                    padding:'3px 8px', borderRadius:6, cursor:'pointer', background:'transparent',
-                    border:`1px solid ${C.line}`, color:C.inkDim, fontSize:10.5, fontWeight:600,
+                    minHeight:36, padding:'0 12px', borderRadius:8, cursor:'pointer', background:'transparent',
+                    border:`1px solid ${C.line}`, color:C.inkDim, fontSize:11, fontWeight:600,
                   }}>다음 주로 복사</button>
                 )}
               </div>
@@ -2001,25 +2038,25 @@ function ManageTab({ data, saveData }) {
                 const editing = editTask === t.id;
                 return (
                   <div key={t.id} style={{
-                    display:'flex', alignItems:'center', gap:8, padding:'7px 8px 7px 12px', borderRadius:9,
-                    marginBottom:5,
-                    background: editing ? 'rgba(34,211,238,0.06)' : done ? 'rgba(52,211,153,0.06)' : 'rgba(255,255,255,0.02)',
+                    display:'flex', alignItems:'center', gap:8, padding:'4px 4px 4px 12px', borderRadius:8,
+                    marginBottom:4,
+                    background: editing ? C.tealDim : done ? 'rgba(127,209,168,0.06)' : 'rgba(255,255,255,0.02)',
                     border:`1px solid ${editing ? C.teal+'60' : done ? C.sage+'30' : C.line}`,
                     transition:'all 0.15s',
                   }}>
-                    <div onClick={() => toggleGuideTask(t.id)} style={{display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0, cursor:'pointer', padding:'2px 0'}}>
+                    <div onClick={() => toggleGuideTask(t.id)} style={{display:'flex', alignItems:'center', gap:12, flex:1, minWidth:0, minHeight:36, cursor:'pointer'}}>
                       <div style={{
-                        width:18, height:18, borderRadius:5, flexShrink:0,
+                        width:18, height:18, borderRadius:4, flexShrink:0,
                         background: done ? C.sage : 'rgba(255,255,255,0.04)',
                         border:`1px solid ${done ? C.sage : C.line}`,
                         display:'flex', alignItems:'center', justifyContent:'center',
                       }}>
-                        {done && <Ic d={i.check} size={10} color='#0a0c14' />}
+                        {done && <Ic d={i.check} size={12} color={C.onAccent} />}
                       </div>
-                      <span style={{fontSize:12, color:done ? C.inkDim : C.inkMid, textDecoration:done ? 'line-through' : 'none', lineHeight:1.4}}>{taskLabel(t)}</span>
+                      <span style={{fontSize:13, color:done ? C.inkDim : C.inkMid, textDecoration:done ? 'line-through' : 'none', lineHeight:1.4}}>{taskLabel(t)}</span>
                     </div>
-                    <button onClick={() => startEditTask(t)} aria-label="수정" style={iconBtn()}><Ic d={i.edit} size={12} color={C.inkDim} /></button>
-                    <button onClick={() => deleteTask(t.id)} aria-label="삭제" style={iconBtn()}><Ic d={i.trash} size={12} color={C.rose || '#f87171'} /></button>
+                    <button onClick={() => startEditTask(t)} aria-label="수정" style={iconBtn}><Ic d={i.edit} size={14} color={C.inkDim} /></button>
+                    <button onClick={() => deleteTask(t.id)} aria-label="삭제" style={iconBtn}><Ic d={i.trash} size={14} color={C.rust} /></button>
                   </div>
                 );
               })}
@@ -2028,31 +2065,31 @@ function ManageTab({ data, saveData }) {
           return (
             <>
               {/* 추가 / 수정 폼 */}
-              <div style={{marginTop:10, padding:10, borderRadius:10, background:'rgba(255,255,255,0.02)', border:`1px solid ${editTask ? C.teal+'60' : C.line}`}}>
-                <div style={{fontSize:10.5, color: editTask ? C.teal : C.inkDim, fontWeight:600, marginBottom:6}}>{editTask ? '항목 수정' : '계획 추가'}</div>
-                <div style={{display:'flex', gap:6, marginBottom:6}}>
+              <div style={{marginTop:12, padding:12, borderRadius:12, background:'rgba(255,255,255,0.02)', border:`1px solid ${editTask ? C.teal+'60' : C.line}`}}>
+                <div style={{fontSize:11, color: editTask ? C.teal : C.inkDim, fontWeight:600, marginBottom:8}}>{editTask ? '항목 수정' : '계획 추가'}</div>
+                <div style={{display:'flex', gap:8, marginBottom:8}}>
                   <input type="date" value={taskForm.date} onChange={e => setTaskForm({ ...taskForm, date: e.target.value })} className="field" style={{flex:'0 0 140px', minWidth:0}} />
                   <input value={taskForm.text} onChange={e => setTaskForm({ ...taskForm, text: e.target.value })}
                     onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) saveTask(); }}
                     placeholder="예: Axis I 30분 + PT" className="field" style={{flex:1, minWidth:0}} />
                 </div>
-                <div style={{display:'flex', gap:6}}>
+                <div style={{display:'flex', gap:8}}>
                   <button onClick={saveTask} className="btn-press" style={{
-                    flex:1, padding:'8px', borderRadius:8, border:'none', cursor:'pointer',
-                    background:`linear-gradient(135deg, ${C.teal}, #67e8f9)`, color:'#0a0c14', fontSize:12, fontWeight:700,
+                    flex:1, minHeight:36, padding:'8px', borderRadius:12, border:'none', cursor:'pointer',
+                    background:C.teal, color:C.onAccent, fontSize:13, fontWeight:700,
                     opacity: taskForm.text.trim() && taskForm.date ? 1 : 0.5,
                   }}>{editTask ? '저장' : '추가'}</button>
                   {editTask && (
                     <button onClick={resetTaskForm} className="btn-press" style={{
-                      padding:'8px 14px', borderRadius:8, cursor:'pointer', background:'transparent',
-                      border:`1px solid ${C.line}`, color:C.inkMid, fontSize:12, fontWeight:600,
+                      minHeight:36, padding:'8px 16px', borderRadius:12, cursor:'pointer', background:'transparent',
+                      border:`1px solid ${C.line}`, color:C.inkMid, fontSize:13, fontWeight:600,
                     }}>취소</button>
                   )}
                 </div>
               </div>
 
               {current.length === 0 && (
-                <div style={{fontSize:11.5, color:C.inkDim, textAlign:'center', padding:'14px 8px 4px', lineHeight:1.6}}>
+                <div style={{fontSize:12, color:C.inkDim, textAlign:'center', padding:'16px 8px 4px', lineHeight:1.6}}>
                   이번 주 이후 계획이 없어요.{past.some(g => g.dated) ? ' 지난 주 계획을 펼쳐 \'다음 주로 복사\'를 눌러도 돼요.' : ''}
                 </div>
               )}
@@ -2060,14 +2097,14 @@ function ManageTab({ data, saveData }) {
 
               {past.length > 0 && (
                 <div style={{marginTop:12}}>
-                  <div style={{display:'flex', gap:6}}>
+                  <div style={{display:'flex', gap:8}}>
                     <button onClick={() => setShowPastTasks(!showPastTasks)} className="btn-press" style={{
-                      flex:1, padding:'8px', borderRadius:8, cursor:'pointer', background:'transparent',
-                      border:`1px solid ${C.line}`, color:C.inkDim, fontSize:11.5, fontWeight:600,
+                      flex:1, minHeight:36, padding:'8px', borderRadius:12, cursor:'pointer', background:'transparent',
+                      border:`1px solid ${C.line}`, color:C.inkDim, fontSize:12, fontWeight:600,
                     }}>지난 주 {showPastTasks ? '접기' : `보기 (${past.reduce((n, g) => n + g.tasks.length, 0)})`}</button>
                     <button onClick={() => clearPastTasks(past)} className="btn-press" style={{
-                      padding:'8px 12px', borderRadius:8, cursor:'pointer', background:'transparent',
-                      border:`1px solid ${C.line}`, color:C.inkDim, fontSize:11.5, fontWeight:600,
+                      minHeight:36, padding:'8px 12px', borderRadius:12, cursor:'pointer', background:'transparent',
+                      border:`1px solid ${C.line}`, color:C.inkDim, fontSize:12, fontWeight:600,
                     }}>지난 주 정리</button>
                   </div>
                   {showPastTasks && past.slice().reverse().map(renderGroup)}
@@ -2083,27 +2120,27 @@ function ManageTab({ data, saveData }) {
         {data.books.map(book => {
           const pct = Math.round((book.progress / book.total) * 100);
           return (
-            <div key={book.id} style={{padding:'12px', borderRadius:10, marginTop:10, background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`}}>
+            <div key={book.id} style={{padding:'12px', borderRadius:12, marginTop:12, background:'rgba(255,255,255,0.02)', border:`1px solid ${C.line}`}}>
               <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
                 <div>
-                  <div style={{fontSize:13, fontWeight:700, color:C.ink}}>{book.title}</div>
-                  <div style={{fontSize:11, color:C.inkDim}}>{book.author} · Axis {book.axis}</div>
+                  <div style={{fontSize:14, fontWeight:700, color:C.ink}}>{book.title}</div>
+                  <div style={{fontSize:12, color:C.inkDim}}>{book.author} · Axis {book.axis}</div>
                 </div>
-                <span style={{fontSize:13, fontWeight:700, color:C.plum}}>{pct}%</span>
+                <span style={{fontSize:14, fontWeight:700, color:C.plum}}>{pct}%</span>
               </div>
               <div className="progress-track" style={{marginBottom:8}}>
-                <div className="progress-fill" style={{width:`${pct}%`, background:`linear-gradient(90deg, ${C.plum}, #c4b5fd)`}} />
+                <div className="progress-fill" style={{width:`${pct}%`, background:C.plum}} />
               </div>
               <div style={{display:'flex', alignItems:'center', gap:8}}>
-                <span style={{fontSize:11, color:C.inkDim}}>{book.progress}/{book.total}p</span>
-                <div style={{display:'flex', gap:5, marginLeft:'auto'}}>
+                <span style={{fontSize:12, color:C.inkDim}}>{book.progress}/{book.total}p</span>
+                <div style={{display:'flex', gap:4, marginLeft:'auto'}}>
                   <button onClick={() => saveData({...data, books: data.books.map(b => b.id===book.id ? {...b, progress: Math.max(0, b.progress-10)} : b)})}
-                    style={{background:'rgba(255,255,255,0.04)', border:`1px solid ${C.line}`, color:C.inkDim, width:26, height:26, borderRadius:7, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
-                    <Ic d={i.minus} size={11} />
+                    style={{background:'rgba(255,255,255,0.04)', border:`1px solid ${C.line}`, color:C.inkMid, width:36, height:36, borderRadius:8, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                    <Ic d={i.minus} size={12} />
                   </button>
                   <button onClick={() => saveData({...data, books: data.books.map(b => b.id===book.id ? {...b, progress: Math.min(b.total, b.progress+10)} : b)})}
-                    style={{background:`${C.plum}14`, border:`1px solid ${C.plum}30`, color:C.plum, width:26, height:26, borderRadius:7, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
-                    <Ic d={i.plus} size={11} />
+                    style={{background:`${C.plum}14`, border:`1px solid ${C.plum}30`, color:C.plum, width:36, height:36, borderRadius:8, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                    <Ic d={i.plus} size={12} />
                   </button>
                 </div>
               </div>
@@ -2113,18 +2150,18 @@ function ManageTab({ data, saveData }) {
       </SectionToggle>
 
       {/* Data management */}
-      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:14, padding:'16px 18px', marginBottom:10}}>
-        <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:14}}>
+      <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'16px 20px', marginBottom:12}}>
+        <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:16}}>
           <Ic d={i.settings} size={14} color={C.slate} />
           <span className="section-tag" style={{color:C.slate}}>데이터 관리</span>
         </div>
         <div style={{
-          display:'flex', alignItems:'center', gap:8, padding:'9px 12px', borderRadius:10, marginBottom:10,
-          background: backupStale ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.03)',
-          border:`1px solid ${backupStale ? 'rgba(251,191,36,0.3)' : C.line}`,
+          display:'flex', alignItems:'center', gap:8, padding:'8px 12px', borderRadius:12, marginBottom:12,
+          background: backupStale ? 'rgba(229,189,107,0.08)' : 'rgba(255,255,255,0.03)',
+          border:`1px solid ${backupStale ? 'rgba(229,189,107,0.3)' : C.line}`,
         }}>
-          <Ic d={i.alert} size={13} color={backupStale ? '#fbbf24' : C.inkDim} />
-          <span style={{fontSize:11.5, color: backupStale ? '#fbbf24' : C.inkMid, lineHeight:1.5}}>
+          <Ic d={i.alert} size={14} color={backupStale ? C.gold : C.inkDim} />
+          <span style={{fontSize:12, color: backupStale ? C.gold : C.inkMid, lineHeight:1.5}}>
             {backupAge === null
               ? '아직 파일로 백업한 적이 없어요. 기록은 이 브라우저에만 저장돼 있어요.'
               : backupAge === 0
@@ -2132,70 +2169,82 @@ function ManageTab({ data, saveData }) {
                 : `마지막 백업: ${backupAge}일 전${backupStale ? ' — 백업을 권장해요.' : ''}`}
           </span>
         </div>
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:10}}>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:12}}>
           <button onClick={exportData} className="btn-press" style={{
-            padding:'10px 12px', borderRadius:10, cursor:'pointer',
+            padding:'12px 12px', borderRadius:12, cursor:'pointer',
             background:'rgba(255,255,255,0.03)', border:`1px solid ${C.line}`,
-            color:C.inkMid, fontSize:12, fontWeight:600,
-            display:'flex', alignItems:'center', gap:7, justifyContent:'center',
+            color:C.inkMid, fontSize:13, fontWeight:600,
+            display:'flex', alignItems:'center', gap:8, justifyContent:'center',
           }}>
-            <Ic d={i.download} size={13} /> 내보내기
+            <Ic d={i.download} size={14} /> 내보내기
           </button>
           <button onClick={() => setShowImport(!showImport)} className="btn-press" style={{
-            padding:'10px 12px', borderRadius:10, cursor:'pointer',
+            padding:'12px 12px', borderRadius:12, cursor:'pointer',
             background:'rgba(255,255,255,0.03)', border:`1px solid ${C.line}`,
-            color:C.inkMid, fontSize:12, fontWeight:600,
-            display:'flex', alignItems:'center', gap:7, justifyContent:'center',
+            color:C.inkMid, fontSize:13, fontWeight:600,
+            display:'flex', alignItems:'center', gap:8, justifyContent:'center',
           }}>
-            <Ic d={i.upload} size={13} /> 가져오기
+            <Ic d={i.upload} size={14} /> 가져오기
           </button>
         </div>
         {showImport && (
           <div>
             <label className="btn-press" style={{
-              display:'flex', alignItems:'center', justifyContent:'center', gap:7, marginBottom:8,
-              padding:'10px 12px', borderRadius:10, cursor:'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:8,
+              padding:'12px 12px', borderRadius:12, cursor:'pointer',
               background:'rgba(255,255,255,0.03)', border:`1px dashed ${C.line}`,
-              color:C.inkMid, fontSize:12, fontWeight:600,
+              color:C.inkMid, fontSize:13, fontWeight:600,
             }}>
-              <Ic d={i.upload} size={13} /> 백업 파일(.json) 선택
+              <Ic d={i.upload} size={14} /> 백업 파일(.json) 선택
               <input type="file" accept="application/json,.json" onChange={importFile} style={{display:'none'}} />
             </label>
-            <div style={{fontSize:10.5, color:C.inkDim, textAlign:'center', margin:'4px 0 8px'}}>또는 JSON 직접 붙여넣기</div>
+            <div style={{fontSize:11, color:C.inkDim, textAlign:'center', margin:'4px 0 8px'}}>또는 JSON 직접 붙여넣기</div>
             <textarea value={importText} onChange={e => setImportText(e.target.value)} placeholder="JSON 데이터 붙여넣기..." rows={4} className="field" style={{marginBottom:8}} />
             <button onClick={importData} className="btn-press" style={{
-              width:'100%', padding:'9px', borderRadius:9, border:'none', cursor:'pointer',
-              background:`linear-gradient(135deg, ${C.teal}, #67e8f9)`,
-              color:'#0a0c14', fontSize:12.5, fontWeight:700,
+              width:'100%', padding:'8px', borderRadius:12, border:'none', cursor:'pointer',
+              background:C.teal,
+              color:C.onAccent, fontSize:13, fontWeight:700,
             }}>가져오기 실행</button>
           </div>
         )}
+        {recoveryKeys.length > 0 && (
+          <div data-testid="recovery-list" style={{marginTop:8, padding:'8px 12px', borderRadius:12, background:C.goldDim, border:`1px solid ${C.gold}40`}}>
+            <div style={{fontSize:12, color:C.ink, lineHeight:1.5, marginBottom:8}}>읽지 못했거나 정리하기 전의 원본 기록 {recoveryKeys.length}개를 보관 중이에요.</div>
+            {recoveryKeys.map((k, idx) => (
+              <button key={k} onClick={() => downloadText(safeGet(k) || '', `lifestyle-tracker-recovery-${idx + 1}.json`)} className="btn-press" style={{
+                width:'100%', marginTop: idx ? 8 : 0, padding:'8px 12px', borderRadius:12, cursor:'pointer',
+                background:'transparent', border:`1px solid ${C.gold}`, color:C.gold, fontSize:12, fontWeight:700,
+                display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+              }}><Ic d={i.download} size={14} /> 원본 {idx + 1} 내려받기</button>
+            ))}
+          </div>
+        )}
         <button onClick={() => { setSnapshots(loadSnapshots()); setShowSnapshots(!showSnapshots); }} className="btn-press" style={{
-          width:'100%', marginTop:8, padding:'9px 12px', borderRadius:10, cursor:'pointer',
+          width:'100%', marginTop:8, padding:'8px 12px', borderRadius:12, cursor:'pointer',
           background:'transparent', border:`1px solid ${C.line}`,
-          color:C.inkDim, fontSize:11.5, fontWeight:600,
+          color:C.inkDim, fontSize:12, fontWeight:600,
         }}>자동 스냅샷 {showSnapshots ? '닫기' : `보기 (${snapshots.length})`}</button>
         {showSnapshots && (
           <div style={{marginTop:8}}>
-            <div style={{fontSize:10.5, color:C.inkDim, lineHeight:1.6, marginBottom:8}}>
+            <div style={{fontSize:11, color:C.inkDim, lineHeight:1.6, marginBottom:8}}>
               매일 처음 열 때 그 시점 데이터를 이 브라우저에 최근 {SNAPSHOT_KEEP}개까지 보관해요. 실수로 지우거나 잘못 가져왔을 때 되돌리는 용도이고, 브라우저 데이터를 지우면 함께 사라지니 파일 백업도 꼭 해 주세요.
             </div>
-            {snapshots.length === 0 && <div style={{fontSize:11.5, color:C.inkDim, textAlign:'center', padding:8}}>아직 스냅샷이 없어요.</div>}
+            {snapshots.length === 0 && <div style={{fontSize:12, color:C.inkDim, textAlign:'center', padding:8}}>아직 스냅샷이 없어요.</div>}
             {snapshots.map((s, idx) => {
               const sm = summarizeData(s.data || {});
               return (
                 <div key={s.savedAt + idx} style={{
                   display:'flex', alignItems:'center', justifyContent:'space-between', gap:8,
-                  padding:'8px 10px', borderRadius:9, marginBottom:6,
+                  padding:'8px 12px', borderRadius:8, marginBottom:8,
                   background:'rgba(255,255,255,0.03)', border:`1px solid ${C.line}`,
                 }}>
                   <div style={{minWidth:0}}>
-                    <div style={{fontSize:12, color:C.ink, fontWeight:600}}>{s.date}{s.label ? ` · ${s.label}` : ''}</div>
-                    <div style={{fontSize:10.5, color:C.inkDim}}>{sm.count}일 기록 · 마지막 {sm.last}</div>
+                    <div style={{fontSize:13, color:C.ink, fontWeight:600}}>{s.date}{s.label ? ` · ${s.label}` : ''}</div>
+                    <div style={{fontSize:11, color:C.inkDim}}>{sm.count}일 기록 · 마지막 {sm.last}</div>
                   </div>
                   <button onClick={() => restoreSnapshot(s)} className="btn-press" style={{
-                    flexShrink:0, padding:'6px 10px', borderRadius:8, cursor:'pointer',
-                    background:'transparent', border:`1px solid ${C.teal}`, color:C.teal, fontSize:11, fontWeight:700,
+                    flexShrink:0, minHeight:36, padding:'4px 12px', borderRadius:8, cursor:'pointer',
+                    background:'transparent', border:`1px solid ${C.teal}`, color:C.teal, fontSize:12, fontWeight:700,
                   }}>복원</button>
                 </div>
               );
@@ -2211,36 +2260,69 @@ function ManageTab({ data, saveData }) {
 function App() {
   const [data, setData] = useState(null);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [recovery, setRecovery] = useState(null);
   const [activeTab, setActiveTab] = useState('today');
   const [analysisRange, setAnalysisRange] = useState('week');
 
   useEffect(() => {
     try {
-      let stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) stored = localStorage.getItem(STORAGE_KEY_LEGACY_V7);
-      if (!stored) stored = localStorage.getItem(STORAGE_KEY_LEGACY_V6);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        takeDailySnapshot(parsed);
-        setData({ ...initialData(), ...parsed });
-      } else setData(initialData());
-    } catch { setData(initialData()); }
+      let loaded = null, notice = null;
+      for (const key of [STORAGE_KEY, STORAGE_KEY_LEGACY_V7, STORAGE_KEY_LEGACY_V6]) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        try {
+          const parsed = JSON.parse(raw);
+          if (!isRecord(parsed)) throw new Error('객체 형식이 아닙니다.');
+          loaded = { parsed, raw };
+          break;
+        } catch {
+          if (!notice) notice = { raw, preserved: preserveRaw(raw) };
+        }
+      }
+      let data = initialData();
+      if (loaded) {
+        const { data: clean, changed } = inspectData({ ...initialData(), ...loaded.parsed });
+        if (changed) {
+          const preserved = preserveRaw(loaded.raw);
+          if (!notice) notice = { raw: loaded.raw, preserved };
+          else if (!preserved) notice = { ...notice, preserved: false };
+        }
+        try { takeDailySnapshot(loaded.parsed); } catch (e) { console.error(e); }
+        data = applyPalette(clean);
+      }
+      if (notice) {
+        storageLocked = !notice.preserved;
+        setRecovery(notice);
+      }
+      setData(data);
+    } catch (e) {
+      // 원인을 알 수 없는 오류: 저장된 원본을 덮어쓰지 않도록 저장을 멈춘다
+      console.error(e);
+      storageLocked = true;
+      setRecovery({ raw: safeGet(STORAGE_KEY) || '', preserved: false });
+      setData(initialData());
+    }
   }, []);
 
   const saveData = useCallback((newData) => {
-    setData(newData);
+    const themed = prepareData(newData);
+    setData(themed);
+    if (storageLocked) return false;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(themed));
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 1500);
-    } catch(e) { console.error(e); }
+      return true;
+    } catch(e) { console.error(e); return false; }
   }, []);
+
+  const downloadRecovery = () => downloadText(recovery.raw, `lifestyle-tracker-recovery-${localDateStr()}.json`);
 
   if (!data) return (
     <div style={{minHeight:'100vh', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:12}}>
       <div style={{width:36, height:36, border:`2px solid ${C.sage}`, borderTopColor:'transparent', borderRadius:'50%', animation:'spin 0.8s linear infinite'}} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <span style={{fontSize:12, color:C.inkDim, letterSpacing:'0.1em'}}>loading...</span>
+      <span style={{fontSize:13, color:C.inkDim, letterSpacing:'0.02em'}}>loading...</span>
     </div>
   );
 
@@ -2279,39 +2361,59 @@ function App() {
       <div style={{maxWidth:520, margin:'0 auto', padding:'0 16px'}}>
 
         {/* Header */}
-        <header style={{paddingTop:28, marginBottom:18}}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}}>
+        <header style={{paddingTop:32, marginBottom:20}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
             <div style={{display:'flex', alignItems:'center', gap:8}}>
               <div style={{
                 width:28, height:28, borderRadius:8,
-                background:`linear-gradient(135deg, ${C.sage}30, ${C.teal}20)`,
-                border:`1px solid ${C.sage}40`,
+                background:C.bg3,
+                border:`1px solid ${C.line}`,
                 display:'flex', alignItems:'center', justifyContent:'center',
               }}>
-                <div style={{width:10, height:10, borderRadius:'50%', background:`linear-gradient(135deg, ${C.sage}, ${C.teal})`}} />
+                <div style={{width:10, height:10, borderRadius:'50%', background:C.sage}} />
               </div>
-              <span style={{fontSize:10.5, fontWeight:700, color:C.inkDim, letterSpacing:'0.15em', textTransform:'uppercase'}}>Lifestyle · v8</span>
+              <span style={{fontSize:11, fontWeight:700, color:C.inkDim, letterSpacing:'0.02em'}}>Lifestyle · v8</span>
             </div>
             <span style={{
-              fontSize:10, color:savedFlash ? C.sage : 'transparent',
-              fontWeight:600, letterSpacing:'0.1em',
+              fontSize:11, color:C.sage, opacity:savedFlash ? 1 : 0,
+              fontWeight:600, letterSpacing:'0.02em',
               transition:'color 0.3s, opacity 0.3s',
               display:'flex', alignItems:'center', gap:4,
             }}>
-              <Ic d={i.check} size={10} color={C.sage} /> 저장됨
+              <Ic d={i.check} size={12} color={C.sage} /> 저장됨
             </span>
           </div>
-          <div style={{display:'flex', alignItems:'baseline', gap:10}}>
+          <div style={{display:'flex', alignItems:'baseline', gap:12}}>
             <h1 style={{
-              fontSize:38, fontWeight:800, lineHeight:1.1,
-              background:`linear-gradient(135deg, ${C.ink} 0%, ${C.inkMid} 100%)`,
-              WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text',
+              fontSize:40, fontWeight:700, lineHeight:1.1, color:C.ink, fontVariantNumeric:'tabular-nums',
             }}>
-              {today.split('-')[1]}<span style={{color:C.sage, WebkitTextFillColor:C.sage}}>.</span>{today.split('-')[2]}
+              {today.split('-')[1]}<span style={{color:C.sage}}>.</span>{today.split('-')[2]}
             </h1>
             <span style={{fontSize:14, color:C.inkDim, fontWeight:500}}>{todayDay}요일</span>
           </div>
         </header>
+
+        {/* Damaged data notice */}
+        {recovery && (
+          <div data-testid="recovery-notice" role="alert" style={{
+            padding:'12px', borderRadius:12, marginBottom:16,
+            background:C.goldDim, border:`1px solid ${C.gold}40`,
+          }}>
+            <div style={{display:'flex', gap:8, alignItems:'flex-start', fontSize:13, color:C.ink, lineHeight:1.5, marginBottom:8}}>
+              <span style={{flexShrink:0, marginTop:2, display:'flex'}}><Ic d={i.alert} size={14} color={C.gold} /></span>
+              <span>{recovery.preserved
+                ? '저장된 기록 일부를 읽지 못했어요. 원본은 이 브라우저에 따로 보관했어요.'
+                : '저장된 기록을 읽지 못했고 저장 공간도 부족해요. 원본을 지키기 위해 새 입력은 저장하지 않아요. 원본을 먼저 내려받아 주세요.'}</span>
+            </div>
+            <button data-testid="recovery-download" onClick={downloadRecovery} className="btn-press" style={{
+              width:'100%', padding:'8px 12px', borderRadius:12, cursor:'pointer',
+              background:'transparent', border:`1px solid ${C.gold}`, color:C.gold, fontSize:13, fontWeight:700,
+              display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            }}>
+              <Ic d={i.download} size={14} /> 원본 내려받기
+            </button>
+          </div>
+        )}
 
         {/* Streaks */}
         <StreakBanner streaks={streaks} />
@@ -2320,7 +2422,7 @@ function App() {
         <div className="tab-bar" style={{marginBottom:20}}>
           {TABS.map(t => (
             <button key={t.id} className={`tab-btn ${activeTab===t.id ? 'active' : ''}`} onClick={() => setActiveTab(t.id)}>
-              <Ic d={i[t.icon]} size={12} color={activeTab===t.id ? C.sage : C.inkDim} />
+              <Ic d={i[t.icon]} size={14} color={activeTab===t.id ? C.sage : C.inkDim} />
               {t.label}
             </button>
           ))}
@@ -2344,8 +2446,8 @@ function App() {
         )}
 
         {/* Footer */}
-        <div style={{marginTop:32, paddingTop:14, borderTop:`1px solid ${C.line}`, textAlign:'center'}}>
-          <span style={{fontSize:9, color:C.inkDim, letterSpacing:'0.2em', textTransform:'uppercase'}}>v8 · localStorage</span>
+        <div style={{marginTop:32, paddingTop:16, borderTop:`1px solid ${C.line}`, textAlign:'center'}}>
+          <span style={{fontSize:11, color:C.inkDim, letterSpacing:'0.02em'}}>v8 · localStorage</span>
         </div>
       </div>
     </div>

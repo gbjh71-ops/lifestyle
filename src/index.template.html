@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Tracker">
 <title>Lifestyle Tracker v8</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
@@ -162,6 +164,25 @@
 <body>
 
 <div id="root"></div>
+<script>
+// 홈 화면 앱(PWA): 웹 주소(https)로 열었을 때만 서비스 워커를 켠다. 파일로 열면 아무것도 하지 않음
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function (e) { console.warn('service worker', e); });
+  });
+}
+// 설치 버튼용: 브라우저가 주는 설치 요청을 앱이 뜨기 전에 미리 받아 둔다
+window.__installPrompt = null;
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault();
+  window.__installPrompt = e;
+  window.dispatchEvent(new Event('installprompt-ready'));
+});
+window.addEventListener('appinstalled', function () {
+  window.__installPrompt = null;
+  window.dispatchEvent(new Event('installprompt-ready'));
+});
+</script>
 <!-- BUILD:INLINE_SCRIPTS -->
 </body>
 </html>

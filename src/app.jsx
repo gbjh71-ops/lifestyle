@@ -1513,6 +1513,71 @@ function AnalysisTab({ data, range, setRange, saveData, streaks }) {
 }
 
 // ===== MANAGE TAB =====
+// ===== 홈 화면 앱(PWA) 설치 안내 =====
+const PAGES_URL = 'https://gbjh71-ops.github.io/lifestyle/';
+const HIDE_INSTALL_KEY = 'lifestyle-tracker-hide-install';
+const isStandalone = () => {
+  try { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; } catch { return false; }
+};
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+function InstallCard() {
+  const [prompt, setPrompt] = useState(() => window.__installPrompt);
+  const [hidden, setHidden] = useState(() => safeGet(HIDE_INSTALL_KEY) === '1');
+  const [installed, setInstalled] = useState(isStandalone);
+  useEffect(() => {
+    const onReady = () => { setPrompt(window.__installPrompt); if (!window.__installPrompt) setInstalled(isStandalone()); };
+    window.addEventListener('installprompt-ready', onReady);
+    return () => window.removeEventListener('installprompt-ready', onReady);
+  }, []);
+  if (installed || hidden) return null;
+
+  const isFile = location.protocol === 'file:';
+  const install = async () => {
+    if (!prompt) return;
+    prompt.prompt();
+    try { await prompt.userChoice; } catch {}
+    window.__installPrompt = null; setPrompt(null);
+  };
+  const dismiss = () => { safeSet(HIDE_INSTALL_KEY, '1'); setHidden(true); };
+
+  let body;
+  if (isFile) {
+    body = <>파일로 연 상태라 설치할 수 없어요. 휴대폰에서 <b style={{color:C.ink, wordBreak:'break-all'}}>{PAGES_URL}</b> 로 열면 홈 화면에 앱처럼 설치할 수 있어요.</>;
+  } else if (prompt) {
+    body = <>홈 화면에 앱으로 설치하면 주소창 없이 바로 열리고, 인터넷이 없어도 써요.</>;
+  } else if (isIOS()) {
+    body = <>Safari 아래쪽 <b style={{color:C.ink}}>공유 버튼(□↑)</b> → <b style={{color:C.ink}}>홈 화면에 추가</b>를 누르면 앱처럼 설치돼요.</>;
+  } else {
+    body = <>브라우저 메뉴(⋮)에서 <b style={{color:C.ink}}>앱 설치</b> 또는 <b style={{color:C.ink}}>홈 화면에 추가</b>를 누르면 앱처럼 설치돼요.</>;
+  }
+
+  return (
+    <div data-testid="install-card" style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'16px 20px', marginBottom:12}}>
+      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:8}}>
+        <div style={{display:'flex', alignItems:'center', gap:8}}>
+          <Ic d={i.download} size={14} color={C.sage} />
+          <span className="section-tag" style={{color:C.sage}}>홈 화면 앱</span>
+        </div>
+        <button onClick={dismiss} style={{
+          background:'transparent', border:'none', color:C.inkDim,
+          minHeight:36, padding:'0 4px', fontSize:11, fontWeight:600, cursor:'pointer',
+        }}>다시 보지 않기</button>
+      </div>
+      <div style={{fontSize:12, color:C.inkMid, lineHeight:1.6}}>{body}</div>
+      {prompt && !isFile && (
+        <button onClick={install} className="btn-press" style={{
+          width:'100%', marginTop:12, minHeight:36, padding:'8px', borderRadius:12, border:'none', cursor:'pointer',
+          background:C.sage, color:C.onAccent, fontSize:13, fontWeight:700,
+        }}>홈 화면에 설치</button>
+      )}
+      <div style={{fontSize:11, color:C.inkDim, lineHeight:1.6, marginTop:8}}>
+        파일로 연 트래커와 웹 주소로 연 앱은 기록이 따로 저장돼요. 옮기려면 데이터 관리의 내보내기 → 가져오기를 쓰세요.
+      </div>
+    </div>
+  );
+}
+
 function ManageTab({ data, saveData }) {
   const [editAxis, setEditAxis] = useState(null);
   const [newAxis, setNewAxis] = useState(false);
@@ -1980,6 +2045,8 @@ function ManageTab({ data, saveData }) {
           );
         })}
       </SectionToggle>
+
+      <InstallCard />
 
       {/* Data management */}
       <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'16px 20px', marginBottom:12}}>

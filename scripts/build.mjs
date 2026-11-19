@@ -11,6 +11,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { transform } from 'esbuild';
 
 const require = createRequire(import.meta.url);
@@ -61,18 +62,32 @@ async function build() {
   return html;
 }
 
+// 서비스 워커: 앱 파일 내용이 바뀌면 버전(캐시 이름)도 바뀌게 해시를 넣는다
+function buildServiceWorker(html) {
+  const hash = createHash('sha256');
+  hash.update(html);
+  for (const f of ['manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png']) {
+    hash.update(readFileSync(join(root, f)));
+  }
+  const version = hash.digest('hex').slice(0, 12);
+  return `// 자동 생성 파일입니다. 고칠 곳: src/sw.js\n${read(join(root, 'src/sw.js')).replaceAll('__BUILD_VERSION__', version)}`;
+}
+
 const html = await build();
-const out = join(root, 'index.html');
+const outputs = { 'index.html': html, 'sw.js': buildServiceWorker(html) };
 
 if (process.argv.includes('--check')) {
-  let current = '';
-  try { current = read(out); } catch {}
-  if (current !== html) {
-    console.error('index.html 이 src/ 와 다릅니다. index.html 을 직접 고쳤다면 그 내용을 src/ 로 옮기고 npm run build 를 실행하세요.');
+  const stale = Object.entries(outputs).filter(([name, content]) => {
+    try { return read(join(root, name)) !== content; } catch { return true; }
+  }).map(([name]) => name);
+  if (stale.length) {
+    console.error(`${stale.join(', ')} 이(가) src/ 와 다릅니다. 직접 고쳤다면 그 내용을 src/ 로 옮기고 npm run build 를 실행하세요.`);
     process.exit(1);
   }
-  console.log('index.html 이 src/ 와 일치합니다.');
+  console.log('index.html, sw.js 가 src/ 와 일치합니다.');
 } else {
-  writeFileSync(out, html);
-  console.log(`index.html 생성 완료 (${(Buffer.byteLength(html) / 1024).toFixed(0)} KB)`);
+  for (const [name, content] of Object.entries(outputs)) {
+    writeFileSync(join(root, name), content);
+    console.log(`${name} 생성 완료 (${(Buffer.byteLength(content) / 1024).toFixed(0)} KB)`);
+  }
 }

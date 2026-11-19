@@ -174,6 +174,7 @@ const STORAGE_KEY_LEGACY_V6 = 'lifestyle-tracker-v6';
 const LAST_BACKUP_KEY = 'lifestyle-tracker-last-backup';
 const SNAPSHOT_KEY = 'lifestyle-tracker-snapshots';
 const SNAPSHOT_KEEP = 7;
+const RECOVERY_KEY = 'lifestyle-tracker-recovery';
 
 // ===== BACKUP HELPERS =====
 const localDateStr = (d = new Date()) => {
@@ -183,7 +184,12 @@ const localDateStr = (d = new Date()) => {
 const safeGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
 const safeSet = (k, v) => { try { localStorage.setItem(k, v); return true; } catch(e) { console.error(e); return false; } };
 const loadSnapshots = () => {
-  try { const v = JSON.parse(safeGet(SNAPSHOT_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
+  try {
+    const v = JSON.parse(safeGet(SNAPSHOT_KEY) || '[]');
+    if (!Array.isArray(v)) return [];
+    return v.filter(s => s && typeof s === 'object' && !Array.isArray(s))
+      .map(s => ({ ...s, date: typeof s.date === 'string' ? s.date : '', label: typeof s.label === 'string' ? s.label : undefined }));
+  } catch { return []; }
 };
 // 하루 한 번, 그날 처음 열었을 때의 데이터를 자동 스냅샷으로 보관 (최근 7개)
 const takeDailySnapshot = (data) => {
@@ -203,6 +209,30 @@ const pushSnapshot = (data, label) => {
     if (safeSet(SNAPSHOT_KEY, JSON.stringify(next.slice(0, n)))) return;
   }
 };
+// 읽을 수 없거나 형식이 어긋난 저장 데이터의 원문을 지우지 않고 따로 보관한다
+const listRecoveryKeys = () => {
+  try { return Object.keys(localStorage).filter(k => k.startsWith(RECOVERY_KEY)).sort(); } catch { return []; }
+};
+const downloadText = (text, name) => {
+  const blob = new Blob([text], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+const preserveRaw = (raw) => {
+  try {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(RECOVERY_KEY));
+    if (keys.some(k => localStorage.getItem(k) === raw)) return true;
+    let k = RECOVERY_KEY, n = 0;
+    while (localStorage.getItem(k) !== null) k = `${RECOVERY_KEY}-${Date.now()}-${++n}`;
+    localStorage.setItem(k, raw);
+    return true;
+  } catch (e) { console.error(e); return false; }
+};
+// 손상된 원문을 보관하지 못했다면 원문이 덮어써지지 않도록 저장을 멈춘다
+let storageLocked = false;
 // 백업 파일 검증: 객체이고 days가 객체여야 함. 래핑된 백업({app, data})도 허용
 const parseBackup = (text) => {
   const raw = JSON.parse(text);
@@ -613,6 +643,70 @@ const initialData = () => ({
   weeklyReviews: {}
 });
 
+// 저장 데이터의 형식을 화면이 기대하는 형태로 맞춘다.
+// 올바른 값은 그대로 두고, 고치거나 버린 값이 있을 때만 fix.changed를 켠다.
+const isRecord = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+const makeFixer = () => {
+  const fix = { changed: false };
+  const mark = (v) => { fix.changed = true; return v; };
+  // 화면에 글자로 표시되는 값: 문자열이 아니면 글자로 바꾼다 (없으면 그대로)
+  fix.text = (v) => (v === null || v === undefined || typeof v === 'string') ? v
+    : mark(typeof v === 'number' || typeof v === 'boolean' ? String(v) : '');
+  // 숫자로 계산하는 값: 숫자가 아니면 비운다
+  fix.num = (v, empty) => (v === null || v === undefined || (typeof v === 'number' && Number.isFinite(v))) ? v
+    : mark(Number.isFinite(Number(v)) && v !== '' && typeof v !== 'object' ? Number(v) : empty);
+  fix.list = (v, keep, fallback) => {
+    if (!Array.isArray(v)) return v === undefined ? fallback : mark(fallback);
+    const out = v.filter(keep);
+    if (out.length !== v.length) mark();
+    return out;
+  };
+  fix.records = (v, fallback) => fix.list(v, isRecord, fallback);
+  fix.object = (v) => isRecord(v) ? v : (v === undefined ? {} : mark({}));
+  fix.field = (obj, key, fn) => (key in obj ? { [key]: fn(obj[key]) } : {});
+  return fix;
+};
+const isText = (v) => typeof v === 'string';
+const normalizeWith = (fix, d) => {
+  const T = fix.text;
+  const day = (x) => {
+    const exercises = Array.isArray(x.exerciseTypes) ? fix.list(x.exerciseTypes, isText, [])
+      : ('exerciseTypes' in x ? mark(isText(x.exerciseType) ? [x.exerciseType] : []) : undefined);
+    return {
+      ...x,
+      axes: 'axes' in x ? fix.list(x.axes, isText, []) : [],
+      ...(exercises !== undefined ? { exerciseTypes: exercises } : {}),
+      ...fix.field(x, 'exerciseType', v => (v === null || isText(v)) ? v : mark(null)),
+      ...fix.field(x, 'note', T), ...fix.field(x, 'journal', T),
+      ...fix.field(x, 'sleepHrs', v => fix.num(v, null)),
+      ...fix.field(x, 'mood', v => fix.num(v, null)),
+      ...fix.field(x, 'selfQ', fix.object),
+    };
+  };
+  const mark = (v) => { fix.changed = true; return v; };
+  const recordMap = (obj, fn) => {
+    const src = fix.object(obj);
+    return Object.fromEntries(Object.entries(src).filter(([, v]) => isRecord(v) || mark(false)).map(([k, v]) => [k, fn(v)]));
+  };
+  const icon = (v) => (isText(v) && Object.hasOwn(i, v)) ? v : mark('more');
+  const item = (x) => ({ ...x, ...fix.field(x, 'id', T), ...fix.field(x, 'label', T), ...fix.field(x, 'sub', T), ...fix.field(x, 'icon', icon), ...fix.field(x, 'color', T) });
+  return {
+    ...d,
+    days: recordMap(d.days, day),
+    axes: fix.records(d.axes, DEFAULT_AXES).map(item),
+    exerciseTypes: fix.records(d.exerciseTypes, DEFAULT_EXERCISE_TYPES).map(item),
+    books: fix.records(d.books, []).map(b => ({ ...b, ...fix.field(b, 'title', T), ...fix.field(b, 'author', T), ...fix.field(b, 'axis', T),
+      ...fix.field(b, 'progress', v => fix.num(v, 0)), ...fix.field(b, 'total', v => fix.num(v, 0)) })),
+    guideTasks: fix.records(d.guideTasks, []).map(g => ({ ...g, ...fix.field(g, 'id', T), ...fix.field(g, 'label', T), ...fix.field(g, 'week', v => fix.num(v, 0)) })),
+    guideTasksDone: fix.object(d.guideTasksDone),
+    weeklyReviews: recordMap(d.weeklyReviews, rv => ({ ...rv, ...fix.field(rv, 'best', T), ...fix.field(rv, 'hardest', T), ...fix.field(rv, 'nextWeek', T) })),
+  };
+};
+const normalizeData = (d) => normalizeWith(makeFixer(), d);
+// 데이터를 정리하고, 실제로 고치거나 버린 값이 있었는지도 함께 알려 준다
+const inspectData = (d) => { const fix = makeFixer(); const data = normalizeWith(fix, d); return { data, changed: fix.changed }; };
+const prepareData = (d) => applyPalette(normalizeData(d));
+
 const todayStr = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -887,7 +981,7 @@ function CodexCard({ entry, openId, setOpenId }) {
 
 // ===== MONTHLY HEATMAP =====
 const HEAT_DARK_TEXT_FROM = 3;
-function MonthlyHeatmap({ days, axes }) {
+function MonthlyHeatmap({ days, axes, exerciseTypes }) {
   const [offset, setOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState(null);
   const d0 = new Date(); d0.setMonth(d0.getMonth() + offset); d0.setDate(1); d0.setHours(0,0,0,0);
@@ -922,6 +1016,8 @@ function MonthlyHeatmap({ days, axes }) {
   };
 
   const selected = selectedDate ? days[selectedDate] : null;
+  const selectedExercises = !selected ? [] : (selected.exerciseTypes?.length ? selected.exerciseTypes : (selected.exerciseType ? [selected.exerciseType] : []));
+  const exerciseLabel = (id) => exerciseTypes.find(t => t.id === id)?.label || id;
 
   return (
     <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:20, marginBottom:16}}>
@@ -994,7 +1090,7 @@ function MonthlyHeatmap({ days, axes }) {
               })}
             </div>
           )}
-          {selected.exerciseType && <div style={{fontSize:12, color:C.teal}}>운동: {EXERCISE_TYPES.find(t => t.id === selected.exerciseType)?.label}</div>}
+          {selectedExercises.length > 0 && <div style={{fontSize:12, color:C.teal}}>운동: {selectedExercises.map(exerciseLabel).join(', ')}</div>}
           {selected.mood && <div style={{fontSize:12}}>{MOODS.find(m => m.v === selected.mood)?.emoji} {MOODS.find(m => m.v === selected.mood)?.label}</div>}
           {selected.note && <div style={{fontSize:12, color:C.inkDim, marginTop:4}}>"{selected.note}"</div>}
         </div>
@@ -1410,7 +1506,7 @@ function AnalysisTab({ data, range, setRange, saveData, streaks }) {
       </div>
 
       {/* Heatmap */}
-      <MonthlyHeatmap days={data.days} axes={data.axes} />
+      <MonthlyHeatmap days={data.days} axes={data.axes} exerciseTypes={data.exerciseTypes} />
 
       {/* Insights */}
       <div style={{background:C.bg2, border:`1px solid ${C.line}`, borderRadius:16, padding:'20px 20px', marginBottom:16}}>
@@ -1515,6 +1611,7 @@ function ManageTab({ data, saveData }) {
   const [lastBackup, setLastBackup] = useState(() => safeGet(LAST_BACKUP_KEY));
   const [snapshots, setSnapshots] = useState(() => loadSnapshots());
   const [showSnapshots, setShowSnapshots] = useState(false);
+  const [recoveryKeys] = useState(() => listRecoveryKeys());
   const [showGuide, setShowGuide] = useState(false);
   const [showBooks, setShowBooks] = useState(false);
 
@@ -1547,6 +1644,10 @@ function ManageTab({ data, saveData }) {
   };
   // 덮어쓰기 전 현재 데이터를 스냅샷으로 남겨서 언제든 되돌릴 수 있게 함
   const restoreFrom = (d, sourceLabel) => {
+    if (storageLocked) {
+      alert('지금은 저장이 멈춰 있어 복원할 수 없어요. 화면 위 안내에 따라 원본을 먼저 내려받아 주세요.');
+      return false;
+    }
     const cur = summarizeData(data), inc = summarizeData(d);
     const msg = `${sourceLabel}\n\n현재: ${cur.count}일 기록 (${cur.first} ~ ${cur.last})\n` +
       `가져올 데이터: ${inc.count}일 기록 (${inc.first} ~ ${inc.last})\n\n` +
@@ -1554,7 +1655,10 @@ function ManageTab({ data, saveData }) {
     if (!confirm(msg)) return false;
     pushSnapshot(data, '복원 전 자동 보관');
     setSnapshots(loadSnapshots());
-    saveData({ ...initialData(), ...d });
+    if (!saveData({ ...initialData(), ...d })) {
+      alert('저장하지 못했어요. 화면 위 안내에 따라 원본을 먼저 내려받은 뒤 다시 시도해 주세요.');
+      return false;
+    }
     return true;
   };
   const importData = () => {
@@ -1910,6 +2014,18 @@ function ManageTab({ data, saveData }) {
             }}>가져오기 실행</button>
           </div>
         )}
+        {recoveryKeys.length > 0 && (
+          <div data-testid="recovery-list" style={{marginTop:8, padding:'8px 12px', borderRadius:12, background:C.goldDim, border:`1px solid ${C.gold}40`}}>
+            <div style={{fontSize:12, color:C.ink, lineHeight:1.5, marginBottom:8}}>읽지 못했거나 정리하기 전의 원본 기록 {recoveryKeys.length}개를 보관 중이에요.</div>
+            {recoveryKeys.map((k, idx) => (
+              <button key={k} onClick={() => downloadText(safeGet(k) || '', `lifestyle-tracker-recovery-${idx + 1}.json`)} className="btn-press" style={{
+                width:'100%', marginTop: idx ? 8 : 0, padding:'8px 12px', borderRadius:12, cursor:'pointer',
+                background:'transparent', border:`1px solid ${C.gold}`, color:C.gold, fontSize:12, fontWeight:700,
+                display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+              }}><Ic d={i.download} size={14} /> 원본 {idx + 1} 내려받기</button>
+            ))}
+          </div>
+        )}
         <button onClick={() => { setSnapshots(loadSnapshots()); setShowSnapshots(!showSnapshots); }} className="btn-press" style={{
           width:'100%', marginTop:8, padding:'8px 12px', borderRadius:12, cursor:'pointer',
           background:'transparent', border:`1px solid ${C.line}`,
@@ -1951,31 +2067,63 @@ function ManageTab({ data, saveData }) {
 function App() {
   const [data, setData] = useState(null);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [recovery, setRecovery] = useState(null);
   const [activeTab, setActiveTab] = useState('today');
   const [analysisRange, setAnalysisRange] = useState('week');
 
   useEffect(() => {
     try {
-      let stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) stored = localStorage.getItem(STORAGE_KEY_LEGACY_V7);
-      if (!stored) stored = localStorage.getItem(STORAGE_KEY_LEGACY_V6);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        takeDailySnapshot(parsed);
-        setData(applyPalette({ ...initialData(), ...parsed }));
-      } else setData(initialData());
-    } catch { setData(initialData()); }
+      let loaded = null, notice = null;
+      for (const key of [STORAGE_KEY, STORAGE_KEY_LEGACY_V7, STORAGE_KEY_LEGACY_V6]) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        try {
+          const parsed = JSON.parse(raw);
+          if (!isRecord(parsed)) throw new Error('객체 형식이 아닙니다.');
+          loaded = { parsed, raw };
+          break;
+        } catch {
+          if (!notice) notice = { raw, preserved: preserveRaw(raw) };
+        }
+      }
+      let data = initialData();
+      if (loaded) {
+        const { data: clean, changed } = inspectData({ ...initialData(), ...loaded.parsed });
+        if (changed) {
+          const preserved = preserveRaw(loaded.raw);
+          if (!notice) notice = { raw: loaded.raw, preserved };
+          else if (!preserved) notice = { ...notice, preserved: false };
+        }
+        try { takeDailySnapshot(loaded.parsed); } catch (e) { console.error(e); }
+        data = applyPalette(clean);
+      }
+      if (notice) {
+        storageLocked = !notice.preserved;
+        setRecovery(notice);
+      }
+      setData(data);
+    } catch (e) {
+      // 원인을 알 수 없는 오류: 저장된 원본을 덮어쓰지 않도록 저장을 멈춘다
+      console.error(e);
+      storageLocked = true;
+      setRecovery({ raw: safeGet(STORAGE_KEY) || '', preserved: false });
+      setData(initialData());
+    }
   }, []);
 
   const saveData = useCallback((newData) => {
-    const themed = applyPalette(newData);
+    const themed = prepareData(newData);
     setData(themed);
+    if (storageLocked) return false;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(themed));
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 1500);
-    } catch(e) { console.error(e); }
+      return true;
+    } catch(e) { console.error(e); return false; }
   }, []);
+
+  const downloadRecovery = () => downloadText(recovery.raw, `lifestyle-tracker-recovery-${localDateStr()}.json`);
 
   if (!data) return (
     <div style={{minHeight:'100vh', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:12}}>
@@ -2051,6 +2199,28 @@ function App() {
             <span style={{fontSize:14, color:C.inkDim, fontWeight:500}}>{todayDay}요일</span>
           </div>
         </header>
+
+        {/* Damaged data notice */}
+        {recovery && (
+          <div data-testid="recovery-notice" role="alert" style={{
+            padding:'12px', borderRadius:12, marginBottom:16,
+            background:C.goldDim, border:`1px solid ${C.gold}40`,
+          }}>
+            <div style={{display:'flex', gap:8, alignItems:'flex-start', fontSize:13, color:C.ink, lineHeight:1.5, marginBottom:8}}>
+              <span style={{flexShrink:0, marginTop:2, display:'flex'}}><Ic d={i.alert} size={14} color={C.gold} /></span>
+              <span>{recovery.preserved
+                ? '저장된 기록 일부를 읽지 못했어요. 원본은 이 브라우저에 따로 보관했어요.'
+                : '저장된 기록을 읽지 못했고 저장 공간도 부족해요. 원본을 지키기 위해 새 입력은 저장하지 않아요. 원본을 먼저 내려받아 주세요.'}</span>
+            </div>
+            <button data-testid="recovery-download" onClick={downloadRecovery} className="btn-press" style={{
+              width:'100%', padding:'8px 12px', borderRadius:12, cursor:'pointer',
+              background:'transparent', border:`1px solid ${C.gold}`, color:C.gold, fontSize:13, fontWeight:700,
+              display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            }}>
+              <Ic d={i.download} size={14} /> 원본 내려받기
+            </button>
+          </div>
+        )}
 
         {/* Streaks */}
         <StreakBanner streaks={streaks} />

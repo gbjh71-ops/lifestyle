@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0e1214">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tracker">
+<title>Lifestyle Tracker v8</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%237fd1a8'/></svg>">
+<style>
+  :root {
+    --bg: #0e1214; --surface: #161b1e; --surface-raised: #1f2629;
+    --ink: #eef2ef; --ink-mid: #c0c9c4; --ink-dim: #97a29c;
+    --line: rgba(255,255,255,0.09); --line-control: #6b7771;
+    --sage: #7fd1a8; --gold: #e5bd6b; --teal: #6fc7cc; --rust: #ee9580; --plum: #bda8e8; --slate: #a7b2bb;
+    --on-accent: #0e1214; --focus: #a8e6c8;
+    --radius-xs: 4px; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 20px; --radius-pill: 999px;
+    --ease: cubic-bezier(0.22,1,0.36,1);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+    word-break: keep-all;
+  }
+  body { min-height: 100vh; min-height: 100dvh; }
+  button { font-family: inherit; cursor: pointer; min-height: 36px; }
+  input, textarea, select { font-family: inherit; }
+  textarea { resize: vertical; }
+  #root { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); position: relative; z-index: 1; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button:focus-visible { outline-offset: -2px; }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(8,10,11,0.8);
+    z-index: 100; display: flex; align-items: flex-end;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes pop { 0%{transform:scale(0.97)}100%{transform:scale(1)} }
+
+  .modal-body {
+    width: 100%; max-width: 520px; margin: 0 auto;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: 90vh; overflow-y: auto;
+    animation: slideUp 0.24s var(--ease);
+  }
+  @media (min-width: 600px) {
+    .modal-bg { align-items: center; padding: 20px; }
+    .modal-body { max-height: 85vh; border-radius: var(--radius-xl); border: 1px solid var(--line); }
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: var(--radius-pill); }
+
+  .heatmap-cell {
+    position: relative; min-height: 0;
+    transition: transform 0.14s var(--ease);
+    cursor: pointer; border-radius: var(--radius-sm) !important;
+    overflow: hidden;
+  }
+  .heatmap-cell:hover { transform: scale(1.06); z-index: 2; }
+
+  /* Button effects */
+  .btn-press { transition: transform 0.12s, opacity 0.12s, background 0.16s, border-color 0.16s; }
+  .btn-press:active { transform: scale(0.98) !important; opacity: 0.9; }
+
+  /* Streak badge */
+  .fire-badge { line-height: 1; }
+
+  /* Tab bar */
+  .tab-bar {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 4px;
+    gap: 4px;
+  }
+  .tab-btn {
+    flex: 1; border: none; border-radius: var(--radius-md);
+    cursor: pointer; transition: background 0.18s, color 0.18s;
+    font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 40px; padding: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    background: transparent;
+    color: var(--ink-dim);
+  }
+  .tab-btn.active { background: var(--surface-raised); color: var(--sage); }
+  .tab-btn:hover:not(.active) { color: var(--ink); }
+
+  /* Mood button */
+  .mood-btn { transition: background 0.16s, border-color 0.16s; border-radius: var(--radius-md); }
+  .mood-btn.active { animation: pop 0.2s var(--ease); }
+
+  /* Input field */
+  .field {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--line-control);
+    border-radius: var(--radius-md);
+    color: var(--ink);
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.16s;
+    padding: 12px;
+    line-height: 1.5;
+  }
+  .field:focus { border-color: var(--focus); outline: 2px solid var(--focus); outline-offset: 0; }
+  .field::placeholder { color: var(--ink-dim); opacity: 1; }
+
+  /* Section header */
+  .section-tag { font-size: 12px; font-weight: 700; letter-spacing: 0.02em; line-height: 18px; }
+
+  /* Stat card */
+  .stat-pill {
+    border-radius: var(--radius-md);
+    padding: 12px 8px;
+    text-align: center;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    transition: border-color 0.16s, background 0.16s;
+  }
+
+  /* Progress bar */
+  .progress-track { height: 6px; border-radius: var(--radius-pill); background: var(--surface-raised); overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: var(--radius-pill); transition: width 0.5s var(--ease); }
+
+  /* Accordion */
+  .accordion-header {
+    width: 100%; border: none; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px;
+    text-align: left;
+    background: transparent;
+    transition: background 0.15s;
+  }
+  .accordion-header:hover { background: var(--surface-raised); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+<!-- BUILD:INLINE_SCRIPTS -->
+</body>
+</html>
